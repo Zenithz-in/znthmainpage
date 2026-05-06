@@ -1,0 +1,109 @@
+#!/bin/bash
+# ===========================================================
+# ZENITH CLOUD - OBSIDIAN NEXT GEN (v12.0 - Nobita Edition)
+# Style: Modern Glass / Segmented Neo UI / Full Redesign
+# ===========================================================
+
+# --- COLORS ---
+B_BLUE='\033[1;38;5;33m'
+B_CYAN='\033[1;38;5;51m'
+B_PURPLE='\033[1;38;5;141m'
+B_GREEN='\033[1;38;5;82m'
+B_RED='\033[1;38;5;196m'
+GOLD='\033[38;5;220m'
+W='\033[1;38;5;255m'
+G='\033[0;38;5;244m'
+BG_SHADE='\033[48;5;236m'
+NC='\033[0m'
+
+# --- REAL-TIME METRICS + HOSTNAME FIX ---
+get_metrics() {
+    CPU=$(top -bn1 | grep "Cpu(s)" | awk '{printf "%.0f", $2+$4}' 2>/dev/null || echo "??")
+    RAM=$(free | grep Mem | awk '{printf "%.0f", $3*100/$2}' 2>/dev/null || echo "??")
+    UPT=$(uptime -p | sed 's/up //' 2>/dev/null || echo "Unknown")
+    DISK=$(df -h / | awk 'NR==2 {print $5}' 2>/dev/null || echo "??")
+
+    # --- FORCE HOSTNAME ---
+    DESIRED_HOST="zenithcloudinfra"
+    CURRENT_HOST=$(hostname)
+
+    if [ "$CURRENT_HOST" != "$DESIRED_HOST" ]; then
+        sudo hostnamectl set-hostname "$DESIRED_HOST" 2>/dev/null
+        sudo sed -i "s/127.0.1.1.*/127.0.1.1    $DESIRED_HOST/" /etc/hosts 2>/dev/null
+        CURRENT_HOST="$DESIRED_HOST"
+    fi
+}
+
+# --- UI ---
+render_ui() {
+    clear
+    get_metrics
+
+    echo -e " ${B_BLUE}${NC}${BG_SHADE}${W}  $CURRENT_HOST ${NC}${B_BLUE}${NC}  ${B_PURPLE}${NC}${BG_SHADE}${W}  $UPT ${NC}${B_PURPLE}${NC}  ${B_GREEN}${NC}${BG_SHADE}${W}  $DISK ${NC}${B_GREEN}${NC}  ${B_CYAN}${NC}${BG_SHADE}${W}  ${CPU}% ${B_PURPLE}RAM ${RAM}%${NC}${B_CYAN}${NC}"
+    echo ""
+
+    echo -e "${B_CYAN}   ███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗${NC}"
+    echo -e "${B_CYAN}   ╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║${NC}"
+    echo -e "${B_PURPLE}     ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║${NC}"
+    echo -e "${B_PURPLE}    ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║${NC}"
+    echo -e "${GOLD}   ███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║${NC}"
+    echo -e "${GOLD}   ╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝${NC}"
+    echo -e "           ${W}Z E N I T H   C L O U D${NC}"
+    echo -e "                  ${G}OBSIDIAN NEXT GEN${NC}"
+
+    echo -e " ${G}────────────────────────────────────────────────────────────────────────────────${NC}\n"
+
+    echo -e " ${W}◉ SYSTEM STATUS${NC}"
+    printf "   ${G}CPU:${NC} ${B_CYAN}%3s%%${NC}   ${G}RAM:${NC} ${B_PURPLE}%3s%%${NC}   ${G}NET:${NC} ${B_GREEN}● ONLINE${NC}\n" "$CPU" "$RAM"
+    echo ""
+
+    echo -e " ${B_CYAN} DEPLOYMENT & SERVICES${NC}"
+    echo -e " ${G}├─${NC} ${W}[1] VPS${NC}        ${G}├─${NC} ${W}[5] Themes"
+    echo -e " ${G}├─${NC} ${W}[2] Panel${NC}      ${G}├─${NC} ${W}[6] System"
+    echo -e " ${G}├─${NC} ${W}[3] Wings${NC}      ${G}├─${NC} ${W}[7] Container"
+    echo -e " ${G}└─${NC} ${W}[8] New Module${NC}"
+
+    echo ""
+    echo -e " ${B_PURPLE} MAINTENANCE & TOOLS${NC}"
+    echo -e " ${G}├─${NC} ${W}[4] Toolbox${NC}   ${G}└─${NC} ${B_RED}[0] SHUTDOWN${NC}"
+    echo -e " ${G}└─${NC} ${W}[9] Extras${NC}"
+
+    echo -e "\n ${G}────────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -ne " ${B_CYAN}➜${NC} ${W}Enter Option (0-9): ${NC}"
+}
+
+# --- LOOP ---
+while true; do
+    render_ui
+    read -r opt
+
+    case $opt in
+        1) bash <(curl -s https://raw.githubusercontent.com/nobita329/Zenith-Cloud/refs/heads/main/VM/menu.sh) ;;
+        2) bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/panel/1.sh) ;;
+        3) bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/wings/run.sh) ;;
+        4) bash <(curl -s https://raw.githubusercontent.com/nobita329/ptero/refs/heads/main/ptero/tools/run.sh) ;;
+        5) bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/thame/run.sh) ;;
+        6) bash <(curl -s https://raw.githubusercontent.com/nobita329/Zenith-Cloud/refs/heads/main/srv/menu/System1.sh) ;;
+        7) bash <(curl -s https://raw.githubusercontent.com/nobita329/ptero/refs/heads/main/ptero/no-kvm/run.sh) ;;
+
+        8)
+            echo -e "\n ${B_GREEN}▶ Launching New Module...${NC}"
+            sleep 1.5
+            ;;
+        9)
+            echo -e "\n ${B_PURPLE}▶ Opening Extras...${NC}"
+            bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/Extras/run.sh)
+            sleep 1.5
+            ;;
+
+        0|exit|quit)
+            echo -e "\n ${B_RED}● DISCONNECTED${NC}  Goodbye, Zenith Cloud."
+            exit 0
+            ;;
+
+        *)
+            echo -e "\n ${B_RED}✘ Invalid Option!${NC}"
+            sleep 0.8
+            ;;
+    esac
+done
