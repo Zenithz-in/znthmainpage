@@ -1,150 +1,318 @@
 #!/bin/bash
-# ============================================================
-#   ZENITH CLOUD INFRASTRUCTURE — OBSIDIAN v13.0
-#   Style: Neo Glass UI | Animated | Professional Grade
-#   Author: Zenith Cloud Infrastructure Team
-# ============================================================
 
-# ── TERMINAL COLORS ─────────────────────────────────────────
-B_BLUE='\033[1;38;5;33m'
-B_CYAN='\033[1;38;5;51m'
-B_PURPLE='\033[1;38;5;141m'
-B_GREEN='\033[1;38;5;82m'
-B_RED='\033[1;38;5;196m'
-B_ORANGE='\033[1;38;5;214m'
-GOLD='\033[38;5;220m'
-W='\033[1;38;5;255m'
-G='\033[0;38;5;244m'
-DIM='\033[2;38;5;240m'
-BG_DARK='\033[48;5;234m'
-BG_SHADE='\033[48;5;236m'
-BG_ACCENT='\033[48;5;17m'
-BLINK='\033[5m'
-BOLD='\033[1m'
-NC='\033[0m'
+# ==========================================================
+#              Z E N I T H   C L O U D
+# ==========================================================
+#      ᴇɴᴛᴇʀᴘʀɪsᴇ ɪɴғʀᴀsᴛʀᴜᴄᴛᴜʀᴇ ᴇɴᴠɪʀᴏɴᴍᴇɴᴛ
+# ==========================================================
 
-# ── CONSTANTS ───────────────────────────────────────────────
-DESIRED_HOST="zenith-infra"
-SCRIPT_VERSION="13.0"
-LOG_FILE="/var/log/zenith-cloud.log"
+trap "tput cnorm; clear; exit 0" SIGINT
 
-# ── LOGGING ─────────────────────────────────────────────────
-log() {
-    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE" 2>/dev/null
+# ================= COLORS =================
+RED='\033[38;5;196m'
+WHITE='\033[97m'
+GRAY='\033[38;5;245m'
+DARK='\033[38;5;238m'
+CYAN='\033[38;5;51m'
+GREEN='\033[38;5;46m'
+BLUE='\033[38;5;39m'
+RESET='\033[0m'
+
+FPS=0.016
+
+# ================= CURSOR =================
+hide_cursor() { tput civis; }
+show_cursor() { tput cnorm; }
+
+# ================= TYPE EFFECT =================
+type_effect() {
+
+TEXT="$1"
+
+for (( i=0; i<${#TEXT}; i++ )); do
+    printf "${WHITE}%s${RESET}" "${TEXT:$i:1}"
+    sleep $FPS
+done
+
+echo ""
+
 }
 
-# ── SPINNER ANIMATION ───────────────────────────────────────
+# ================= SMOOTH BAR =================
+smooth_bar() {
+
+MSG="$1"
+
+printf "\n${CYAN}%s${RESET}\n\n" "$MSG"
+
+printf "${DARK}  [${RESET}"
+
+for i in {1..45}; do
+    printf "${CYAN}█${RESET}"
+    sleep $FPS
+done
+
+printf "${DARK}]${RESET}\n"
+
+}
+
+# ================= SPINNER =================
 spinner() {
-    local pid=$1
-    local msg="${2:-Processing}"
-    local frames=('⠋' '⠙' '⠸' '⠴' '⠦' '⠇')
-    local colors=("$B_CYAN" "$B_PURPLE" "$B_BLUE" "$B_CYAN" "$B_PURPLE" "$B_BLUE")
-    local i=0
-    tput civis 2>/dev/null
-    while kill -0 "$pid" 2>/dev/null; do
-        local color=${colors[$((i % ${#colors[@]}))]}
-        printf "\r   ${color}${frames[$((i % ${#frames[@]}))]}${NC}  ${W}%s${NC}${DIM}...${NC}" "$msg"
-        sleep 0.08
-        ((i++))
-    done
-    tput cnorm 2>/dev/null
-    printf "\r   ${B_GREEN}✔${NC}  ${W}%s${NC}${B_GREEN} Done!${NC}         \n" "$msg"
+
+PID=$1
+
+SPIN='⠋⠙⠸⠴⠦⠇'
+INDEX=0
+
+while ps -p $PID >/dev/null 2>&1; do
+
+    INDEX=$(( (INDEX+1) %6 ))
+
+    printf "\r${CYAN}%s ${WHITE}ᴘʀᴏᴄᴇssɪɴɢ ʀᴇǫᴜᴇsᴛ...${RESET}" "${SPIN:$INDEX:1}"
+
+    sleep $FPS
+
+done
+
+printf "\r${GREEN}ᴄᴏᴍᴘʟᴇᴛᴇᴅ sᴜᴄᴄᴇssғᴜʟʟʏ                                          ${RESET}\n"
+
 }
 
-# ── PROGRESS BAR ────────────────────────────────────────────
-progress_bar() {
-    local duration=${1:-2}
-    local label="${2:-Loading}"
-    local width=40
-    local steps=$((width))
-    local delay
-    delay=$(echo "scale=4; $duration / $steps" | bc 2>/dev/null || echo "0.05")
+# ================= HEADER =================
+header() {
 
-    printf "   ${G}%-20s${NC} [" "$label"
-    for ((i=0; i<steps; i++)); do
-        local pct=$(( (i * 100) / steps ))
-        if   [ $pct -lt 33 ]; then printf "${B_RED}━${NC}"
-        elif [ $pct -lt 66 ]; then printf "${B_ORANGE}━${NC}"
-        else                        printf "${B_GREEN}━${NC}"
-        fi
-        sleep "$delay"
-    done
-    printf "] ${B_GREEN}100%%${NC}\n"
+clear
+
+echo -e "${RED}"
+
+cat << "EOF"
+
+███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗
+╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║
+  ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║
+ ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║
+███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║
+╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝
+
+EOF
+
+echo -e "${RESET}"
+
+printf "${WHITE}                 ᴢ ᴇ ɴ ɪ ᴛ ʜ   ᴄ ʟ ᴏ ᴜ ᴅ${RESET}\n"
+printf "${GRAY}          ᴇɴᴛᴇʀᴘʀɪsᴇ ʜᴏsᴛɪɴɢ ɪɴғʀᴀsᴛʀᴜᴄᴛᴜʀᴇ${RESET}\n\n"
+
 }
 
-# ── TYPING EFFECT ───────────────────────────────────────────
-type_text() {
-    local text="$1"
-    local color="${2:-$W}"
-    local delay="${3:-0.03}"
-    printf "   ${color}"
-    for ((i=0; i<${#text}; i++)); do
-        printf "%s" "${text:$i:1}"
-        sleep "$delay"
-    done
-    printf "${NC}\n"
+# ================= SYSTEM INFO =================
+system_info() {
+
+CPU=$(grep -m1 "model name" /proc/cpuinfo | cut -d ':' -f2 | xargs)
+RAM=$(free -h | awk '/Mem:/ {print $2}')
+DISK=$(df -h / | awk 'NR==2 {print $2}')
+UPTIME=$(uptime -p)
+LOAD=$(awk '{print $1,$2,$3}' /proc/loadavg)
+
+echo -e "${DARK}┌──────────────────────────────────────────────────────┐${RESET}"
+
+printf "${DARK}│${RESET} ${CYAN}ᴄᴘᴜ${RESET}        ${GRAY}│${RESET} ${WHITE}%-35s${RESET}${DARK}│${RESET}\n" "${CPU:0:35}"
+
+printf "${DARK}│${RESET} ${CYAN}ᴍᴇᴍᴏʀʏ${RESET}     ${GRAY}│${RESET} ${WHITE}%-35s${RESET}${DARK}│${RESET}\n" "$RAM"
+
+printf "${DARK}│${RESET} ${CYAN}sᴛᴏʀᴀɢᴇ${RESET}    ${GRAY}│${RESET} ${WHITE}%-35s${RESET}${DARK}│${RESET}\n" "$DISK"
+
+printf "${DARK}│${RESET} ${CYAN}ʟᴏᴀᴅ${RESET}       ${GRAY}│${RESET} ${WHITE}%-35s${RESET}${DARK}│${RESET}\n" "$LOAD"
+
+printf "${DARK}│${RESET} ${CYAN}ᴜᴘᴛɪᴍᴇ${RESET}     ${GRAY}│${RESET} ${WHITE}%-35s${RESET}${DARK}│${RESET}\n" "$UPTIME"
+
+echo -e "${DARK}└──────────────────────────────────────────────────────┘${RESET}"
+
+echo ""
+
 }
 
-# ── PULSE LINE ──────────────────────────────────────────────
-pulse_line() {
-    local colors=("$B_BLUE" "$B_CYAN" "$B_PURPLE" "$GOLD" "$B_PURPLE" "$B_CYAN" "$B_BLUE")
-    local line="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    for c in "${colors[@]}"; do
-        printf "\r   ${c}${line}${NC}"
-        sleep 0.06
-    done
-    printf "\n"
+# ================= BOOT =================
+boot_animation() {
+
+hide_cursor
+
+clear
+
+echo ""
+
+type_effect "ɪɴɪᴛɪᴀʟɪᴢɪɴɢ ᴢᴇɴɪᴛʜ ᴄʟᴏᴜᴅ ᴇɴᴠɪʀᴏɴᴍᴇɴᴛ"
+
+sleep 0.2
+
+smooth_bar "ʟᴏᴀᴅɪɴɢ ᴄᴏʀᴇ ɪɴғʀᴀsᴛʀᴜᴄᴛᴜʀᴇ"
+
+smooth_bar "sᴛᴀʀᴛɪɴɢ ᴇɴᴛᴇʀᴘʀɪsᴇ sᴇʀᴠɪᴄᴇs"
+
+smooth_bar "ᴀᴘᴘʟʏɪɴɢ ɴᴇᴛᴡᴏʀᴋ ᴏᴘᴛɪᴍɪᴢᴀᴛɪᴏɴ"
+
+smooth_bar "ᴇɴᴀʙʟɪɴɢ sᴇᴄᴜʀɪᴛʏ ᴘʀᴏᴛᴏᴄᴏʟs"
+
+show_cursor
+
 }
 
-# ── REAL-TIME METRICS ───────────────────────────────────────
-get_metrics() {
-    CPU=$(top -bn1 | grep "Cpu(s)" | awk '{printf "%.1f", $2+$4}' 2>/dev/null || echo "N/A")
-    RAM_USED=$(free -m | awk '/Mem:/ {print $3}' 2>/dev/null || echo "0")
-    RAM_TOTAL=$(free -m | awk '/Mem:/ {print $2}' 2>/dev/null || echo "1")
-    RAM=$(awk "BEGIN {printf \"%.1f\", ($RAM_USED/$RAM_TOTAL)*100}")
-    RAM_DISPLAY="${RAM_USED}M / ${RAM_TOTAL}M"
-    UPT=$(uptime -p | sed 's/up //' 2>/dev/null || echo "Unknown")
-    DISK=$(df -h / | awk 'NR==2 {print $3"/"$2" ("$5")"}' 2>/dev/null || echo "N/A")
-    DISK_PCT=$(df / | awk 'NR==2 {print $5}' | tr -d '%' 2>/dev/null || echo "0")
-    LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',' 2>/dev/null || echo "0")
-    IP_PUB=$(curl -s --max-time 3 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
-    IP_LOC=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "N/A")
-    PROCS=$(ps aux | wc -l 2>/dev/null || echo "0")
-    OS_INFO=$(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2 || echo "Linux")
-    KERNEL=$(uname -r 2>/dev/null || echo "Unknown")
-    CPU_MODEL=$(grep -m1 "model name" /proc/cpuinfo | cut -d':' -f2 | xargs 2>/dev/null || echo "Unknown CPU")
-    CPU_CORES=$(nproc 2>/dev/null || echo "?")
+# ================= SYSTEM UPDATE =================
+update_system() {
 
-    # Colour-code usage levels
-    cpu_color="$B_GREEN";  [ "${CPU%.*}" -ge 70 ] 2>/dev/null && cpu_color="$B_ORANGE"; [ "${CPU%.*}" -ge 90 ] 2>/dev/null && cpu_color="$B_RED"
-    ram_color="$B_GREEN";  [ "${RAM%.*}" -ge 70 ] 2>/dev/null && ram_color="$B_ORANGE"; [ "${RAM%.*}" -ge 90 ] 2>/dev/null && ram_color="$B_RED"
-    disk_color="$B_GREEN"; [ "$DISK_PCT"  -ge 80 ] 2>/dev/null && disk_color="$B_ORANGE"; [ "$DISK_PCT" -ge 90 ] 2>/dev/null && disk_color="$B_RED"
+header
+
+printf "${CYAN}  sʏsᴛᴇᴍ ᴜᴘᴅᴀᴛᴇ & ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ${RESET}\n\n"
+
+(
+apt update -y >/dev/null 2>&1 &&
+apt upgrade -y >/dev/null 2>&1 &&
+apt autoremove -y >/dev/null 2>&1 &&
+apt autoclean -y >/dev/null 2>&1
+) &
+
+spinner $!
+
 }
 
-# ── HOSTNAME LOCK ───────────────────────────────────────────
-enforce_hostname() {
-    CURRENT_HOST=$(hostname)
-    if [ "$CURRENT_HOST" != "$DESIRED_HOST" ]; then
-        sudo hostnamectl set-hostname "$DESIRED_HOST" 2>/dev/null
-        sudo sed -i "/127.0.1.1/c\127.0.1.1    $DESIRED_HOST" /etc/hosts 2>/dev/null
-        log "Hostname enforced: $CURRENT_HOST → $DESIRED_HOST"
-    fi
-    CURRENT_HOST="$DESIRED_HOST"
+# ================= INSTALL PANEL =================
+install_panel() {
+
+header
+
+printf "${CYAN}  ᴘᴛᴇʀᴏᴅᴀᴄᴛʏʟ ᴘᴀɴᴇʟ ᴅᴇᴘʟᴏʏᴍᴇɴᴛ${RESET}\n"
+
+smooth_bar "ᴘʀᴇᴘᴀʀɪɴɢ ɪɴsᴛᴀʟʟᴀᴛɪᴏɴ"
+
+bash <(curl -s https://pterodactyl-installer.se)
+
 }
 
-# ── MOTD SETUP ──────────────────────────────────────────────
-setup_motd() {
-    clear
-    echo ""
-    type_text "◈ Configuring MOTD for Zenith Cloud Infrastructure..." "$B_CYAN" 0.02
-    echo ""
+# ================= UPDATE WINGS =================
+update_wings() {
 
-    MOTD_DIR="/etc/update-motd.d"
-    sudo mkdir -p "$MOTD_DIR" 2>/dev/null
+header
 
-    # Disable default motd scripts
-    sudo chmod -x "$MOTD_DIR"/10-uname        2>/dev/null
+printf "${CYAN}  ᴡɪɴɢs ᴅᴀᴇᴍᴏɴ ᴜᴘᴅᴀᴛᴇ${RESET}\n\n"
+
+(
+ARCH=$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")
+
+systemctl stop wings >/dev/null 2>&1
+
+curl -L -o /usr/local/bin/wings \
+"https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_${ARCH}" \
+>/dev/null 2>&1
+
+chmod +x /usr/local/bin/wings
+
+systemctl restart wings >/dev/null 2>&1
+
+) &
+
+spinner $!
+
+}
+
+# ================= VPS OPTIMIZATION =================
+optimize_vps() {
+
+header
+
+printf "${CYAN}  ᴇɴᴛᴇʀᴘʀɪsᴇ ᴠᴘs ᴏᴘᴛɪᴍɪᴢᴀᴛɪᴏɴ${RESET}\n\n"
+
+(
+hostnamectl set-hostname zenith-core
+
+echo "Zenith Cloud Infrastructure" > /etc/motd
+
+cat > /etc/sysctl.d/99-zenith.conf <<EOF
+fs.file-max = 2097152
+net.core.somaxconn = 65535
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fin_timeout = 15
+vm.swappiness = 10
+EOF
+
+sysctl --system >/dev/null 2>&1
+
+apt install -y htop curl wget git unzip fail2ban >/dev/null 2>&1
+
+) &
+
+spinner $!
+
+printf "\n${GREEN}  ᴏᴘᴛɪᴍɪᴢᴀᴛɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇ${RESET}\n"
+
+}
+
+# ================= MENU =================
+menu() {
+
+while true; do
+
+header
+system_info
+
+echo -e "${DARK}┌──────────────────────────────────────────────────────┐${RESET}"
+
+printf "${DARK}│${RESET} ${RED}[1]${RESET}  sʏsᴛᴇᴍ ᴜᴘᴅᴀᴛᴇ & ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ             ${DARK}│${RESET}\n"
+
+printf "${DARK}│${RESET} ${RED}[2]${RESET}  ɪɴsᴛᴀʟʟ ᴘᴛᴇʀᴏᴅᴀᴄᴛʏʟ ᴘᴀɴᴇʟ              ${DARK}│${RESET}\n"
+
+printf "${DARK}│${RESET} ${RED}[3]${RESET}  ᴜᴘᴅᴀᴛᴇ ᴡɪɴɢs ᴅᴀᴇᴍᴏɴ                    ${DARK}│${RESET}\n"
+
+printf "${DARK}│${RESET} ${RED}[4]${RESET}  ᴇɴᴛᴇʀᴘʀɪsᴇ ᴠᴘs ᴏᴘᴛɪᴍɪᴢᴀᴛɪᴏɴ            ${DARK}│${RESET}\n"
+
+printf "${DARK}│${RESET} ${RED}[0]${RESET}  ᴇxɪᴛ                                     ${DARK}│${RESET}\n"
+
+echo -e "${DARK}└──────────────────────────────────────────────────────┘${RESET}"
+
+echo ""
+
+read -p "  sᴇʟᴇᴄᴛ ᴏᴘᴛɪᴏɴ : " choice
+
+case $choice in
+
+1)
+update_system
+;;
+
+2)
+install_panel
+;;
+
+3)
+update_wings
+;;
+
+4)
+optimize_vps
+;;
+
+0)
+clear
+type_effect "sʜᴜᴛᴛɪɴɢ ᴅᴏᴡɴ ᴢᴇɴɪᴛʜ ᴄʟᴏᴜᴅ"
+sleep 0.3
+clear
+exit 0
+;;
+
+*)
+printf "\n${RED}  ɪɴᴠᴀʟɪᴅ ᴏᴘᴛɪᴏɴ${RESET}\n"
+sleep 1
+;;
+
+esac
+
+echo ""
+read -p "  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ..."
+
+done
+
+}
+
+# ================= START =================
+boot_animation
+menu    sudo chmod -x "$MOTD_DIR"/10-uname        2>/dev/null
     sudo chmod -x "$MOTD_DIR"/50-motd-news    2>/dev/null
     sudo chmod -x "$MOTD_DIR"/80-livepatch    2>/dev/null
     sudo chmod -x "$MOTD_DIR"/90-updates-available 2>/dev/null
