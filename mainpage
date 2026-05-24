@@ -1,80 +1,84 @@
 #!/bin/bash
-# ===========================================================
-# ZENITH CLOUD - OBSIDIAN NEXT GEN (v13.0 - Nobita Edition)
-# Style: Modern Glass / Segmented Neo UI / Full Redesign
-# + Animations + VPS Optimizer + MC Server Boost Engine
-# ===========================================================
+# ============================================================
+#   ZENITH CLOUD INFRASTRUCTURE — OBSIDIAN v13.0
+#   Style: Neo Glass UI | Animated | Professional Grade
+#   Author: Zenith Cloud Infrastructure Team
+# ============================================================
 
-# --- COLORS ---
+# ── TERMINAL COLORS ─────────────────────────────────────────
 B_BLUE='\033[1;38;5;33m'
 B_CYAN='\033[1;38;5;51m'
 B_PURPLE='\033[1;38;5;141m'
 B_GREEN='\033[1;38;5;82m'
 B_RED='\033[1;38;5;196m'
-B_ORANGE='\033[1;38;5;208m'
-B_YELLOW='\033[1;38;5;226m'
+B_ORANGE='\033[1;38;5;214m'
 GOLD='\033[38;5;220m'
 W='\033[1;38;5;255m'
 G='\033[0;38;5;244m'
 DIM='\033[2;38;5;240m'
+BG_DARK='\033[48;5;234m'
 BG_SHADE='\033[48;5;236m'
-BG_DARK='\033[48;5;233m'
+BG_ACCENT='\033[48;5;17m'
 BLINK='\033[5m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-# ============================================================
-# ANIMATION LIBRARY
-# ============================================================
+# ── CONSTANTS ───────────────────────────────────────────────
+DESIRED_HOST="zenith-infra"
+SCRIPT_VERSION="13.0"
+LOG_FILE="/var/log/zenith-cloud.log"
 
+# ── LOGGING ─────────────────────────────────────────────────
+log() {
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE" 2>/dev/null
+}
+
+# ── SPINNER ANIMATION ───────────────────────────────────────
 spinner() {
     local pid=$1
-    local msg="${2:-Processing...}"
-    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local msg="${2:-Processing}"
+    local frames=('⠋' '⠙' '⠸' '⠴' '⠦' '⠇')
+    local colors=("$B_CYAN" "$B_PURPLE" "$B_BLUE" "$B_CYAN" "$B_PURPLE" "$B_BLUE")
     local i=0
-    tput civis
+    tput civis 2>/dev/null
     while kill -0 "$pid" 2>/dev/null; do
-        printf "\r  ${B_CYAN}${frames[$i]}${NC}  ${W}%s${NC}" "$msg"
-        i=$(( (i+1) % ${#frames[@]} ))
+        local color=${colors[$((i % ${#colors[@]}))]}
+        printf "\r   ${color}${frames[$((i % ${#frames[@]}))]}${NC}  ${W}%s${NC}${DIM}...${NC}" "$msg"
         sleep 0.08
+        ((i++))
     done
-    printf "\r  ${B_GREEN}✔${NC}  ${W}%s${NC}  ${B_GREEN}Done!${NC}\n" "$msg"
-    tput cnorm
+    tput cnorm 2>/dev/null
+    printf "\r   ${B_GREEN}✔${NC}  ${W}%s${NC}${B_GREEN} Done!${NC}         \n" "$msg"
 }
 
+# ── PROGRESS BAR ────────────────────────────────────────────
 progress_bar() {
-    local total=$1
-    local label="${2:-Working}"
-    local color="${3:-$B_CYAN}"
-    local width=50
-    for ((i=0; i<=total; i++)); do
-        local filled=$(( i * width / total ))
-        local empty=$(( width - filled ))
-        local pct=$(( i * 100 / total ))
-        local bar=""
-        for ((j=0; j<filled; j++)); do bar+="█"; done
-        for ((j=0; j<empty; j++)); do bar+="░"; done
-        printf "\r  ${color}[${bar}]${NC} ${W}%3d%%${NC}  ${G}%s${NC}" "$pct" "$label"
-        sleep 0.04
+    local duration=${1:-2}
+    local label="${2:-Loading}"
+    local width=40
+    local steps=$((width))
+    local delay
+    delay=$(echo "scale=4; $duration / $steps" | bc 2>/dev/null || echo "0.05")
+
+    printf "   ${G}%-20s${NC} [" "$label"
+    for ((i=0; i<steps; i++)); do
+        local pct=$(( (i * 100) / steps ))
+        if   [ $pct -lt 33 ]; then printf "${B_RED}━${NC}"
+        elif [ $pct -lt 66 ]; then printf "${B_ORANGE}━${NC}"
+        else                        printf "${B_GREEN}━${NC}"
+        fi
+        sleep "$delay"
     done
-    echo ""
+    printf "] ${B_GREEN}100%%${NC}\n"
 }
 
-pulse_line() {
-    local msg="$1"
-    local colors=("$B_CYAN" "$B_PURPLE" "$B_BLUE" "$B_PURPLE" "$B_CYAN")
-    for c in "${colors[@]}"; do
-        printf "\r  ${c}${msg}${NC}"
-        sleep 0.07
-    done
-    printf "\r  ${W}${msg}${NC}\n"
-}
-
-typewriter() {
+# ── TYPING EFFECT ───────────────────────────────────────────
+type_text() {
     local text="$1"
     local color="${2:-$W}"
     local delay="${3:-0.03}"
-    printf "  ${color}"
+    printf "   ${color}"
     for ((i=0; i<${#text}; i++)); do
         printf "%s" "${text:$i:1}"
         sleep "$delay"
@@ -82,35 +86,568 @@ typewriter() {
     printf "${NC}\n"
 }
 
-glitch_text() {
-    local text="$1"
-    local glitch_chars='!@#$%^&*<>?/|\~'
-    local len=${#text}
-    for pass in 1 2 3; do
-        local out=""
-        for ((i=0; i<len; i++)); do
-            if (( RANDOM % 4 == 0 )); then
-                out+="${glitch_chars:$(( RANDOM % ${#glitch_chars} )):1}"
-            else
-                out+="${text:$i:1}"
-            fi
-        done
-        printf "\r  ${B_PURPLE}%s${NC}" "$out"
+# ── PULSE LINE ──────────────────────────────────────────────
+pulse_line() {
+    local colors=("$B_BLUE" "$B_CYAN" "$B_PURPLE" "$GOLD" "$B_PURPLE" "$B_CYAN" "$B_BLUE")
+    local line="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for c in "${colors[@]}"; do
+        printf "\r   ${c}${line}${NC}"
         sleep 0.06
     done
-    printf "\r  ${W}%s${NC}\n" "$text"
+    printf "\n"
 }
 
-countdown_bar() {
-    local secs=$1
-    local label="${2:-Applying}"
-    for ((i=secs; i>=0; i--)); do
-        local filled=$(( (secs - i) * 20 / secs ))
-        local bar=""
-        for ((j=0; j<filled; j++)); do bar+="▰"; done
-        for ((j=filled; j<20; j++)); do bar+="▱"; done
-        printf "\r  ${B_ORANGE}[%s]${NC} ${W}%ds${NC}  ${G}%s...${NC}" "$bar" "$i" "$label"
-        sleep 1
+# ── REAL-TIME METRICS ───────────────────────────────────────
+get_metrics() {
+    CPU=$(top -bn1 | grep "Cpu(s)" | awk '{printf "%.1f", $2+$4}' 2>/dev/null || echo "N/A")
+    RAM_USED=$(free -m | awk '/Mem:/ {print $3}' 2>/dev/null || echo "0")
+    RAM_TOTAL=$(free -m | awk '/Mem:/ {print $2}' 2>/dev/null || echo "1")
+    RAM=$(awk "BEGIN {printf \"%.1f\", ($RAM_USED/$RAM_TOTAL)*100}")
+    RAM_DISPLAY="${RAM_USED}M / ${RAM_TOTAL}M"
+    UPT=$(uptime -p | sed 's/up //' 2>/dev/null || echo "Unknown")
+    DISK=$(df -h / | awk 'NR==2 {print $3"/"$2" ("$5")"}' 2>/dev/null || echo "N/A")
+    DISK_PCT=$(df / | awk 'NR==2 {print $5}' | tr -d '%' 2>/dev/null || echo "0")
+    LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',' 2>/dev/null || echo "0")
+    IP_PUB=$(curl -s --max-time 3 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+    IP_LOC=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "N/A")
+    PROCS=$(ps aux | wc -l 2>/dev/null || echo "0")
+    OS_INFO=$(lsb_release -ds 2>/dev/null || cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2 || echo "Linux")
+    KERNEL=$(uname -r 2>/dev/null || echo "Unknown")
+    CPU_MODEL=$(grep -m1 "model name" /proc/cpuinfo | cut -d':' -f2 | xargs 2>/dev/null || echo "Unknown CPU")
+    CPU_CORES=$(nproc 2>/dev/null || echo "?")
+
+    # Colour-code usage levels
+    cpu_color="$B_GREEN";  [ "${CPU%.*}" -ge 70 ] 2>/dev/null && cpu_color="$B_ORANGE"; [ "${CPU%.*}" -ge 90 ] 2>/dev/null && cpu_color="$B_RED"
+    ram_color="$B_GREEN";  [ "${RAM%.*}" -ge 70 ] 2>/dev/null && ram_color="$B_ORANGE"; [ "${RAM%.*}" -ge 90 ] 2>/dev/null && ram_color="$B_RED"
+    disk_color="$B_GREEN"; [ "$DISK_PCT"  -ge 80 ] 2>/dev/null && disk_color="$B_ORANGE"; [ "$DISK_PCT" -ge 90 ] 2>/dev/null && disk_color="$B_RED"
+}
+
+# ── HOSTNAME LOCK ───────────────────────────────────────────
+enforce_hostname() {
+    CURRENT_HOST=$(hostname)
+    if [ "$CURRENT_HOST" != "$DESIRED_HOST" ]; then
+        sudo hostnamectl set-hostname "$DESIRED_HOST" 2>/dev/null
+        sudo sed -i "/127.0.1.1/c\127.0.1.1    $DESIRED_HOST" /etc/hosts 2>/dev/null
+        log "Hostname enforced: $CURRENT_HOST → $DESIRED_HOST"
+    fi
+    CURRENT_HOST="$DESIRED_HOST"
+}
+
+# ── MOTD SETUP ──────────────────────────────────────────────
+setup_motd() {
+    clear
+    echo ""
+    type_text "◈ Configuring MOTD for Zenith Cloud Infrastructure..." "$B_CYAN" 0.02
+    echo ""
+
+    MOTD_DIR="/etc/update-motd.d"
+    sudo mkdir -p "$MOTD_DIR" 2>/dev/null
+
+    # Disable default motd scripts
+    sudo chmod -x "$MOTD_DIR"/10-uname        2>/dev/null
+    sudo chmod -x "$MOTD_DIR"/50-motd-news    2>/dev/null
+    sudo chmod -x "$MOTD_DIR"/80-livepatch    2>/dev/null
+    sudo chmod -x "$MOTD_DIR"/90-updates-available 2>/dev/null
+
+    MOTD_SCRIPT="$MOTD_DIR/00-zenith-cloud"
+
+    sudo tee "$MOTD_SCRIPT" > /dev/null 2>/dev/null << 'MOTD_EOF'
+#!/bin/bash
+# Zenith Cloud Infrastructure MOTD
+
+B_CYAN='\033[1;38;5;51m'
+B_PURPLE='\033[1;38;5;141m'
+GOLD='\033[38;5;220m'
+B_GREEN='\033[1;38;5;82m'
+B_RED='\033[1;38;5;196m'
+B_ORANGE='\033[1;38;5;214m'
+W='\033[1;38;5;255m'
+G='\033[0;38;5;244m'
+NC='\033[0m'
+
+CPU=$(top -bn1 | grep "Cpu(s)" | awk '{printf "%.1f", $2+$4}' 2>/dev/null || echo "N/A")
+RAM=$(free | awk '/Mem:/ {printf "%.1f", $3*100/$2}' 2>/dev/null || echo "N/A")
+DISK=$(df -h / | awk 'NR==2 {print $5}' 2>/dev/null || echo "N/A")
+IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "N/A")
+UPTIME=$(uptime -p | sed 's/up //' 2>/dev/null || echo "N/A")
+USERS=$(who | wc -l 2>/dev/null || echo "0")
+DATE=$(date '+%A, %B %d %Y  %H:%M:%S %Z')
+KERNEL=$(uname -r)
+
+echo ""
+echo -e "${B_CYAN}  ███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗${NC}"
+echo -e "${B_CYAN}  ╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║${NC}"
+echo -e "${B_PURPLE}    ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║${NC}"
+echo -e "${B_PURPLE}   ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║${NC}"
+echo -e "${GOLD}  ███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║${NC}"
+echo -e "${GOLD}  ╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝${NC}"
+echo -e "          ${W}Z E N I T H   C L O U D   I N F R A S T R U C T U R E${NC}"
+echo -e "${G}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${G}  ${DATE}${NC}"
+echo -e "${G}  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo -e "  ${G}CPU Usage  :${NC}  ${B_CYAN}${CPU}%${NC}   ${G}|  RAM Usage :${NC}  ${B_PURPLE}${RAM}%${NC}   ${G}|  Disk :${NC}  ${B_GREEN}${DISK}${NC}"
+echo -e "  ${G}IP Address :${NC}  ${W}${IP}${NC}   ${G}|  Uptime    :${NC}  ${W}${UPTIME}${NC}"
+echo -e "  ${G}Kernel     :${NC}  ${W}${KERNEL}${NC}   ${G}|  Sessions  :${NC}  ${W}${USERS} active${NC}"
+echo ""
+echo -e "  ${B_GREEN}●${NC} ${W}Infrastructure Node — Authorised Access Only${NC}"
+echo -e "  ${G}  All activity is logged and monitored.${NC}"
+echo ""
+MOTD_EOF
+
+    sudo chmod +x "$MOTD_SCRIPT" 2>/dev/null
+
+    # Also write /etc/motd static fallback
+    sudo tee /etc/motd > /dev/null 2>/dev/null << 'STATIC_EOF'
+
+ ════════════════════════════════════════════════════════
+   ZENITH CLOUD INFRASTRUCTURE — Authorised Access Only
+   All sessions are monitored and logged.
+ ════════════════════════════════════════════════════════
+
+STATIC_EOF
+
+    # Update /etc/issue
+    sudo tee /etc/issue > /dev/null 2>/dev/null << 'ISSUE_EOF'
+Zenith Cloud Infrastructure \n (\l)
+ISSUE_EOF
+
+    sudo tee /etc/issue.net > /dev/null 2>/dev/null << 'ISSUENET_EOF'
+Zenith Cloud Infrastructure
+ISSUENET_EOF
+
+    progress_bar 1.5 "Writing MOTD scripts"
+    echo ""
+    echo -e "   ${B_GREEN}✔${NC}  ${W}MOTD installed at ${B_CYAN}${MOTD_SCRIPT}${NC}"
+    echo -e "   ${B_GREEN}✔${NC}  ${W}Static /etc/motd updated${NC}"
+    echo -e "   ${B_GREEN}✔${NC}  ${W}/etc/issue & /etc/issue.net updated${NC}"
+    echo ""
+    echo -e "   ${G}MOTD will display on next SSH login.${NC}"
+    log "MOTD configured successfully"
+    echo ""
+    read -rp "   Press [Enter] to return..."
+}
+
+# ── VPS OPTIMIZATION (ENTERPRISE GRADE) ─────────────────────
+run_vps_optimization() {
+    clear
+    echo ""
+    echo -e "${B_CYAN}  ╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${B_CYAN}  ║${NC}  ${W}${BOLD}  VPS OPTIMIZATION ENGINE${NC}  ${B_CYAN}—${NC}  ${G}Enterprise Hosting Grade${NC}  ${B_CYAN}      ║${NC}"
+    echo -e "${B_CYAN}  ╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    type_text "Preparing optimizations for large-scale VPS hosting..." "$G" 0.02
+    echo ""
+    echo -e "   ${B_ORANGE}⚠  This will modify kernel, network, and system parameters.${NC}"
+    echo -e "   ${G}   Designed for high-density Pterodactyl / game / web hosting.${NC}"
+    echo ""
+    echo -ne "   ${W}Continue? [${B_GREEN}y${NC}/${B_RED}N${NC}]: "
+    read -r confirm
+    [[ ! "$confirm" =~ ^[Yy]$ ]] && echo -e "\n   ${B_RED}✘ Aborted.${NC}\n" && sleep 1 && return
+
+    echo ""
+    echo -e "   ${B_CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+    # ── 1. APT UPGRADE & CLEANUP ────────────────────────────
+    echo ""
+    echo -e "   ${B_CYAN}[1/9]${NC} ${W}System Packages — Update & Clean${NC}"
+    (
+        sudo apt-get update -qq 2>/dev/null
+        sudo apt-get upgrade -y -qq 2>/dev/null
+        sudo apt-get autoremove -y -qq 2>/dev/null
+        sudo apt-get autoclean -qq 2>/dev/null
+        log "APT upgrade and clean completed"
+    ) &
+    spinner $! "Upgrading & cleaning packages"
+
+    # ── 2. INSTALL PERFORMANCE TOOLS ───────────────────────
+    echo -e "   ${B_CYAN}[2/9]${NC} ${W}Performance Utilities${NC}"
+    (
+        sudo apt-get install -y -qq \
+            tuned htop iotop sysstat irqbalance cpufrequtils \
+            nload nethogs iftop vnstat haveged \
+            linux-tools-common linux-tools-generic 2>/dev/null
+        log "Performance utilities installed"
+    ) &
+    spinner $! "Installing performance utilities"
+
+    # ── 3. KERNEL / SYSCTL TUNING ───────────────────────────
+    echo -e "   ${B_CYAN}[3/9]${NC} ${W}Kernel & Network Sysctl Tuning${NC}"
+    (
+        SYSCTL_CONF="/etc/sysctl.d/99-zenith-optimize.conf"
+        sudo tee "$SYSCTL_CONF" > /dev/null << 'SYSCTL_EOF'
+# ── ZENITH CLOUD — Kernel Optimization (Enterprise VPS Hosting) ──
+
+# ── VIRTUAL MEMORY ──────────────────────────────────────────────
+vm.swappiness                  = 10
+vm.dirty_ratio                 = 15
+vm.dirty_background_ratio      = 5
+vm.vfs_cache_pressure          = 50
+vm.overcommit_memory           = 1
+vm.overcommit_ratio            = 50
+vm.min_free_kbytes             = 65536
+
+# ── FILE SYSTEM / INODE ─────────────────────────────────────────
+fs.file-max                    = 2097152
+fs.inotify.max_user_watches    = 524288
+fs.inotify.max_user_instances  = 512
+
+# ── NETWORK CORE ────────────────────────────────────────────────
+net.core.somaxconn             = 65535
+net.core.netdev_max_backlog    = 250000
+net.core.rmem_default          = 262144
+net.core.wmem_default          = 262144
+net.core.rmem_max              = 134217728
+net.core.wmem_max              = 134217728
+net.core.optmem_max            = 65536
+
+# ── TCP TUNING ──────────────────────────────────────────────────
+net.ipv4.tcp_rmem              = 4096 87380 134217728
+net.ipv4.tcp_wmem              = 4096 65536 134217728
+net.ipv4.tcp_mem               = 786432 1048576 26777216
+net.ipv4.tcp_max_syn_backlog   = 30000
+net.ipv4.tcp_max_tw_buckets    = 1440000
+net.ipv4.tcp_tw_reuse          = 1
+net.ipv4.tcp_fin_timeout       = 15
+net.ipv4.tcp_keepalive_time    = 300
+net.ipv4.tcp_keepalive_intvl   = 30
+net.ipv4.tcp_keepalive_probes  = 5
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_mtu_probing       = 1
+net.ipv4.tcp_congestion_control = bbr
+net.ipv4.tcp_notsent_lowat     = 16384
+net.ipv4.tcp_fastopen          = 3
+net.ipv4.tcp_window_scaling    = 1
+net.ipv4.tcp_timestamps        = 0
+net.ipv4.tcp_sack              = 1
+net.ipv4.tcp_no_metrics_save   = 1
+net.ipv4.tcp_moderate_rcvbuf   = 1
+
+# ── UDP ─────────────────────────────────────────────────────────
+net.ipv4.udp_rmem_min          = 8192
+net.ipv4.udp_wmem_min          = 8192
+
+# ── IP / ROUTING ────────────────────────────────────────────────
+net.ipv4.ip_local_port_range   = 1024 65535
+net.ipv4.conf.all.rp_filter    = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.ip_forward            = 1
+
+# ── IPv6 (DISABLED — VPS HOSTING TYPICALLY IPV4) ────────────────
+net.ipv6.conf.all.disable_ipv6 = 0
+
+# ── ARP ─────────────────────────────────────────────────────────
+net.ipv4.neigh.default.gc_thresh1 = 4096
+net.ipv4.neigh.default.gc_thresh2 = 8192
+net.ipv4.neigh.default.gc_thresh3 = 16384
+
+# ── KERNEL ──────────────────────────────────────────────────────
+kernel.pid_max                 = 4194304
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+kernel.panic                   = 10
+SYSCTL_EOF
+        sudo sysctl -p "$SYSCTL_CONF" > /dev/null 2>&1
+        log "Sysctl tuning applied"
+    ) &
+    spinner $! "Applying kernel & network parameters"
+
+    # ── 4. BBR CONGESTION CONTROL ───────────────────────────
+    echo -e "   ${B_CYAN}[4/9]${NC} ${W}TCP BBR Congestion Control${NC}"
+    (
+        if ! lsmod | grep -q "tcp_bbr" 2>/dev/null; then
+            sudo modprobe tcp_bbr 2>/dev/null
+            echo "tcp_bbr" | sudo tee -a /etc/modules > /dev/null 2>/dev/null
+        fi
+        log "TCP BBR enabled"
+    ) &
+    spinner $! "Enabling TCP BBR"
+
+    # ── 5. SYSTEM LIMITS (ULIMIT) ───────────────────────────
+    echo -e "   ${B_CYAN}[5/9]${NC} ${W}System Limits (ulimits / PAM)${NC}"
+    (
+        LIMITS_CONF="/etc/security/limits.d/99-zenith.conf"
+        sudo tee "$LIMITS_CONF" > /dev/null << 'LIMITS_EOF'
+# Zenith Cloud Infrastructure — System Limits
+*         soft    nofile      1048576
+*         hard    nofile      1048576
+*         soft    nproc       65536
+*         hard    nproc       65536
+*         soft    memlock     unlimited
+*         hard    memlock     unlimited
+*         soft    stack       32768
+*         hard    stack       65536
+root      soft    nofile      1048576
+root      hard    nofile      1048576
+LIMITS_EOF
+
+        # systemd service file limits
+        sudo mkdir -p /etc/systemd/system.conf.d 2>/dev/null
+        sudo tee /etc/systemd/system.conf.d/99-zenith-limits.conf > /dev/null << 'SYSD_EOF'
+[Manager]
+DefaultLimitNOFILE=1048576
+DefaultLimitNPROC=65536
+DefaultLimitMEMLOCK=infinity
+SYSD_EOF
+        sudo systemctl daemon-reexec 2>/dev/null
+        log "System limits applied"
+    ) &
+    spinner $! "Configuring system limits"
+
+    # ── 6. SWAP OPTIMISATION ────────────────────────────────
+    echo -e "   ${B_CYAN}[6/9]${NC} ${W}Swap — Disable/Configure for Hosting${NC}"
+    (
+        SWAP_TOTAL=$(free -g | awk '/Swap:/ {print $2}')
+        if [ "${SWAP_TOTAL:-0}" -eq 0 ]; then
+            # Create 2GB swapfile if no swap exists
+            sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null
+            sudo chmod 600 /swapfile 2>/dev/null
+            sudo mkswap /swapfile > /dev/null 2>/dev/null
+            sudo swapon /swapfile 2>/dev/null
+            grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+        fi
+        log "Swap configured"
+    ) &
+    spinner $! "Configuring swap"
+
+    # ── 7. DISK I/O SCHEDULER ───────────────────────────────
+    echo -e "   ${B_CYAN}[7/9]${NC} ${W}Disk I/O Scheduler${NC}"
+    (
+        for disk in $(lsblk -d -o NAME,TYPE | awk '$2=="disk" {print $1}'); do
+            if [ -f "/sys/block/$disk/queue/rotational" ]; then
+                ROTATIONAL=$(cat "/sys/block/$disk/queue/rotational")
+                if [ "$ROTATIONAL" -eq 0 ]; then
+                    # SSD → none/noop
+                    echo "none" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null || \
+                    echo "noop" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null
+                else
+                    # HDD → mq-deadline
+                    echo "mq-deadline" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null
+                fi
+            fi
+        done
+        # Persist via udev
+        sudo tee /etc/udev/rules.d/60-zenith-io-scheduler.rules > /dev/null << 'UDEV_EOF'
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="mq-deadline"
+ACTION=="add|change", KERNEL=="nvme*", ATTR{queue/scheduler}="none"
+UDEV_EOF
+        log "I/O scheduler optimized"
+    ) &
+    spinner $! "Optimizing I/O scheduler"
+
+    # ── 8. SERVICE CLEANUP ──────────────────────────────────
+    echo -e "   ${B_CYAN}[8/9]${NC} ${W}Disable Non-Essential Services${NC}"
+    (
+        for svc in bluetooth cups avahi-daemon ModemManager snapd; do
+            sudo systemctl stop    "$svc" 2>/dev/null
+            sudo systemctl disable "$svc" 2>/dev/null
+        done
+        # Enable performance services
+        sudo systemctl enable --now irqbalance  2>/dev/null
+        sudo systemctl enable --now haveged     2>/dev/null
+        log "Services cleaned up"
+    ) &
+    spinner $! "Cleaning up services"
+
+    # ── 9. CPU GOVERNOR & TUNED PROFILE ─────────────────────
+    echo -e "   ${B_CYAN}[9/9]${NC} ${W}CPU Governor & Tuned Profile${NC}"
+    (
+        # Set CPU governor to performance
+        for cpu_gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            [ -f "$cpu_gov" ] && echo "performance" | sudo tee "$cpu_gov" > /dev/null 2>/dev/null
+        done
+
+        # Apply tuned profile
+        if command -v tuned-adm &>/dev/null; then
+            sudo tuned-adm profile throughput-performance 2>/dev/null
+        fi
+
+        # Transparent Hugepages — madvise (best for mixed workloads)
+        echo "madvise" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null 2>/dev/null
+        echo "defer+madvise" | sudo tee /sys/kernel/mm/transparent_hugepage/defrag > /dev/null 2>/dev/null
+
+        # Persist THP via rc.local
+        grep -q "transparent_hugepage" /etc/rc.local 2>/dev/null || \
+            sudo sed -i '/^exit 0/i echo madvise > /sys/kernel/mm/transparent_hugepage/enabled' /etc/rc.local 2>/dev/null
+
+        log "CPU governor & tuned profile applied"
+    ) &
+    spinner $! "Setting CPU governor & tuned profile"
+
+    # ── SUMMARY ─────────────────────────────────────────────
+    echo ""
+    pulse_line
+    echo ""
+    echo -e "   ${B_GREEN}★  OPTIMIZATION COMPLETE${NC}"
+    echo ""
+    echo -e "   ${G}Applied optimizations:${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}Kernel sysctl (BBR, buffer tuning, port range, etc.)${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}System file limits → 1,048,576 open files${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}TCP Fast Open + BBR congestion control${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}I/O scheduler (Snet.ipv4.tcp_moderate_rcvbuf   = 1
+
+# ── UDP ─────────────────────────────────────────────────────────
+net.ipv4.udp_rmem_min          = 8192
+net.ipv4.udp_wmem_min          = 8192
+
+# ── IP / ROUTING ────────────────────────────────────────────────
+net.ipv4.ip_local_port_range   = 1024 65535
+net.ipv4.conf.all.rp_filter    = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.ip_forward            = 1
+
+# ── IPv6 (DISABLED — VPS HOSTING TYPICALLY IPV4) ────────────────
+net.ipv6.conf.all.disable_ipv6 = 0
+
+# ── ARP ─────────────────────────────────────────────────────────
+net.ipv4.neigh.default.gc_thresh1 = 4096
+net.ipv4.neigh.default.gc_thresh2 = 8192
+net.ipv4.neigh.default.gc_thresh3 = 16384
+
+# ── KERNEL ──────────────────────────────────────────────────────
+kernel.pid_max                 = 4194304
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+kernel.panic                   = 10
+SYSCTL_EOF
+        sudo sysctl -p "$SYSCTL_CONF" > /dev/null 2>&1
+        log "Sysctl tuning applied"
+    ) &
+    spinner $! "Applying kernel & network parameters"
+
+    # ── 4. BBR CONGESTION CONTROL ───────────────────────────
+    echo -e "   ${B_CYAN}[4/9]${NC} ${W}TCP BBR Congestion Control${NC}"
+    (
+        if ! lsmod | grep -q "tcp_bbr" 2>/dev/null; then
+            sudo modprobe tcp_bbr 2>/dev/null
+            echo "tcp_bbr" | sudo tee -a /etc/modules > /dev/null 2>/dev/null
+        fi
+        log "TCP BBR enabled"
+    ) &
+    spinner $! "Enabling TCP BBR"
+
+    # ── 5. SYSTEM LIMITS (ULIMIT) ───────────────────────────
+    echo -e "   ${B_CYAN}[5/9]${NC} ${W}System Limits (ulimits / PAM)${NC}"
+    (
+        LIMITS_CONF="/etc/security/limits.d/99-zenith.conf"
+        sudo tee "$LIMITS_CONF" > /dev/null << 'LIMITS_EOF'
+# Zenith Cloud Infrastructure — System Limits
+*         soft    nofile      1048576
+*         hard    nofile      1048576
+*         soft    nproc       65536
+*         hard    nproc       65536
+*         soft    memlock     unlimited
+*         hard    memlock     unlimited
+*         soft    stack       32768
+*         hard    stack       65536
+root      soft    nofile      1048576
+root      hard    nofile      1048576
+LIMITS_EOF
+
+        # systemd service file limits
+        sudo mkdir -p /etc/systemd/system.conf.d 2>/dev/null
+        sudo tee /etc/systemd/system.conf.d/99-zenith-limits.conf > /dev/null << 'SYSD_EOF'
+[Manager]
+DefaultLimitNOFILE=1048576
+DefaultLimitNPROC=65536
+DefaultLimitMEMLOCK=infinity
+SYSD_EOF
+        sudo systemctl daemon-reexec 2>/dev/null
+        log "System limits applied"
+    ) &
+    spinner $! "Configuring system limits"
+
+    # ── 6. SWAP OPTIMISATION ────────────────────────────────
+    echo -e "   ${B_CYAN}[6/9]${NC} ${W}Swap — Disable/Configure for Hosting${NC}"
+    (
+        SWAP_TOTAL=$(free -g | awk '/Swap:/ {print $2}')
+        if [ "${SWAP_TOTAL:-0}" -eq 0 ]; then
+            # Create 2GB swapfile if no swap exists
+            sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null
+            sudo chmod 600 /swapfile 2>/dev/null
+            sudo mkswap /swapfile > /dev/null 2>/dev/null
+            sudo swapon /swapfile 2>/dev/null
+            grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+        fi
+        log "Swap configured"
+    ) &
+    spinner $! "Configuring swap"
+
+    # ── 7. DISK I/O SCHEDULER ───────────────────────────────
+    echo -e "   ${B_CYAN}[7/9]${NC} ${W}Disk I/O Scheduler${NC}"
+    (
+        for disk in $(lsblk -d -o NAME,TYPE | awk '$2=="disk" {print $1}'); do
+            if [ -f "/sys/block/$disk/queue/rotational" ]; then
+                ROTATIONAL=$(cat "/sys/block/$disk/queue/rotational")
+                if [ "$ROTATIONAL" -eq 0 ]; then
+                    # SSD → none/noop
+                    echo "none" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null || \
+                    echo "noop" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null
+                else
+                    # HDD → mq-deadline
+                    echo "mq-deadline" | sudo tee "/sys/block/$disk/queue/scheduler" > /dev/null 2>/dev/null
+                fi
+            fi
+        done
+        # Persist via udev
+        sudo tee /etc/udev/rules.d/60-zenith-io-scheduler.rules > /dev/null << 'UDEV_EOF'
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="none"
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="mq-deadline"
+ACTION=="add|change", KERNEL=="nvme*", ATTR{queue/scheduler}="none"
+UDEV_EOF
+        log "I/O scheduler optimized"
+    ) &
+    spinner $! "Optimizing I/O scheduler"
+
+    # ── 8. SERVICE CLEANUP ──────────────────────────────────
+    echo -e "   ${B_CYAN}[8/9]${NC} ${W}Disable Non-Essential Services${NC}"
+    (
+        for svc in bluetooth cups avahi-daemon ModemManager snapd; do
+            sudo systemctl stop    "$svc" 2>/dev/null
+            sudo systemctl disable "$svc" 2>/dev/null
+        done
+        # Enable performance services
+        sudo systemctl enable --now irqbalance  2>/dev/null
+        sudo systemctl enable --now haveged     2>/dev/null
+        log "Services cleaned up"
+    ) &
+    spinner $! "Cleaning up services"
+
+    # ── 9. CPU GOVERNOR & TUNED PROFILE ─────────────────────
+    echo -e "   ${B_CYAN}[9/9]${NC} ${W}CPU Governor & Tuned Profile${NC}"
+    (
+        # Set CPU governor to performance
+        for cpu_gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+            [ -f "$cpu_gov" ] && echo "performance" | sudo tee "$cpu_gov" > /dev/null 2>/dev/null
+        done
+
+        # Apply tuned profile
+        if command -v tuned-adm &>/dev/null; then
+            sudo tuned-adm profile throughput-performance 2>/dev/null
+        fi
+
+        # Transparent Hugepages — madvise (best for mixed workloads)
+        echo "madvise" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null 2>/dev/null
+        echo "defer+madvise" | sudo tee /sys/kernel/mm/transparent_hugepage/defrag > /dev/null 2>/dev/null
+
+        # Persist THP via rc.local
+        grep -q "transparent_hugepage" /etc/rc.local 2>/dev/null || \
+            sudo sed -i '/^exit 0/i echo madvise > /sys/kernel/mm/transparent_hugepage/enabled' /etc/rc.local 2>/dev/n
+        log "CPU governor & tuned profile applied"
+    ) &
+    spinner $! "Setting CPU governor & tuned profile
+    # ── SUMMARY ─────────────────────────────────────────────
+    echo ""
+    pulse_line
+    echo ""
+    echo -e "   ${B_GREEN}★  OPTIMIZATION COMPLETE${NC}"
+    echo ""
+    echo -e "   ${G}Applied optimizations:${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}Kernel sysctl (BBR, buffer tuning, port range, etc.)${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}System file limits → 1,048,576 open files${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}TCP Fast Open + BBR congestion control${NC}"
+    echo -e "   ${B_CYAN}▸${NC} ${W}I/O sched        sleep 1
     done
     echo ""
 }
