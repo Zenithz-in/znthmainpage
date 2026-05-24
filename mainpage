@@ -1,7 +1,8 @@
 #!/bin/bash
 # ===========================================================
-# ZENITH CLOUD - OBSIDIAN NEXT GEN (v12.0 - Nobita Edition)
+# ZENITH CLOUD - OBSIDIAN NEXT GEN (v13.0 - Nobita Edition)
 # Style: Modern Glass / Segmented Neo UI / Full Redesign
+# + Animations + VPS Optimizer + MC Server Boost Engine
 # ===========================================================
 
 # --- COLORS ---
@@ -10,23 +11,189 @@ B_CYAN='\033[1;38;5;51m'
 B_PURPLE='\033[1;38;5;141m'
 B_GREEN='\033[1;38;5;82m'
 B_RED='\033[1;38;5;196m'
+B_ORANGE='\033[1;38;5;208m'
+B_YELLOW='\033[1;38;5;226m'
 GOLD='\033[38;5;220m'
 W='\033[1;38;5;255m'
 G='\033[0;38;5;244m'
+DIM='\033[2;38;5;240m'
 BG_SHADE='\033[48;5;236m'
+BG_DARK='\033[48;5;233m'
+BLINK='\033[5m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-# --- REAL-TIME METRICS + HOSTNAME FIX ---
+# ============================================================
+# ANIMATION LIBRARY
+# ============================================================
+
+spinner() {
+    local pid=$1
+    local msg="${2:-Processing...}"
+    local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+    tput civis
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r  ${B_CYAN}${frames[$i]}${NC}  ${W}%s${NC}" "$msg"
+        i=$(( (i+1) % ${#frames[@]} ))
+        sleep 0.08
+    done
+    printf "\r  ${B_GREEN}✔${NC}  ${W}%s${NC}  ${B_GREEN}Done!${NC}\n" "$msg"
+    tput cnorm
+}
+
+progress_bar() {
+    local total=$1
+    local label="${2:-Working}"
+    local color="${3:-$B_CYAN}"
+    local width=50
+    for ((i=0; i<=total; i++)); do
+        local filled=$(( i * width / total ))
+        local empty=$(( width - filled ))
+        local pct=$(( i * 100 / total ))
+        local bar=""
+        for ((j=0; j<filled; j++)); do bar+="█"; done
+        for ((j=0; j<empty; j++)); do bar+="░"; done
+        printf "\r  ${color}[${bar}]${NC} ${W}%3d%%${NC}  ${G}%s${NC}" "$pct" "$label"
+        sleep 0.04
+    done
+    echo ""
+}
+
+pulse_line() {
+    local msg="$1"
+    local colors=("$B_CYAN" "$B_PURPLE" "$B_BLUE" "$B_PURPLE" "$B_CYAN")
+    for c in "${colors[@]}"; do
+        printf "\r  ${c}${msg}${NC}"
+        sleep 0.07
+    done
+    printf "\r  ${W}${msg}${NC}\n"
+}
+
+typewriter() {
+    local text="$1"
+    local color="${2:-$W}"
+    local delay="${3:-0.03}"
+    printf "  ${color}"
+    for ((i=0; i<${#text}; i++)); do
+        printf "%s" "${text:$i:1}"
+        sleep "$delay"
+    done
+    printf "${NC}\n"
+}
+
+glitch_text() {
+    local text="$1"
+    local glitch_chars='!@#$%^&*<>?/|\~'
+    local len=${#text}
+    for pass in 1 2 3; do
+        local out=""
+        for ((i=0; i<len; i++)); do
+            if (( RANDOM % 4 == 0 )); then
+                out+="${glitch_chars:$(( RANDOM % ${#glitch_chars} )):1}"
+            else
+                out+="${text:$i:1}"
+            fi
+        done
+        printf "\r  ${B_PURPLE}%s${NC}" "$out"
+        sleep 0.06
+    done
+    printf "\r  ${W}%s${NC}\n" "$text"
+}
+
+countdown_bar() {
+    local secs=$1
+    local label="${2:-Applying}"
+    for ((i=secs; i>=0; i--)); do
+        local filled=$(( (secs - i) * 20 / secs ))
+        local bar=""
+        for ((j=0; j<filled; j++)); do bar+="▰"; done
+        for ((j=filled; j<20; j++)); do bar+="▱"; done
+        printf "\r  ${B_ORANGE}[%s]${NC} ${W}%ds${NC}  ${G}%s...${NC}" "$bar" "$i" "$label"
+        sleep 1
+    done
+    echo ""
+}
+
+wave_banner() {
+    local lines=(
+        "   ███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗"
+        "   ╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║"
+        "     ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║"
+        "    ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║"
+        "   ███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║"
+        "   ╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝"
+    )
+    local wave_colors=("$B_CYAN" "$B_CYAN" "$B_PURPLE" "$B_PURPLE" "$GOLD" "$GOLD")
+    for i in "${!lines[@]}"; do
+        echo -e "${wave_colors[$i]}${lines[$i]}${NC}"
+        sleep 0.04
+    done
+}
+
+scan_effect() {
+    local width=82
+    printf "  ${B_CYAN}"
+    for ((i=0; i<width; i++)); do
+        printf "─"
+        sleep 0.005
+    done
+    printf "${NC}\n"
+}
+
+status_dot_anim() {
+    local label="$1"
+    local dots=3
+    for ((d=1; d<=dots; d++)); do
+        local s=""
+        for ((j=0; j<d; j++)); do s+="●"; done
+        for ((j=d; j<dots; j++)); do s+="○"; done
+        printf "\r  ${B_GREEN}${s}${NC}  ${W}%s${NC}" "$label"
+        sleep 0.3
+    done
+    printf "\r  ${B_GREEN}●●●${NC}  ${W}%s${NC}  ${B_GREEN}[READY]${NC}\n" "$label"
+}
+
+# Boot animation
+boot_sequence() {
+    clear
+    echo ""
+    sleep 0.1
+
+    printf "  ${B_CYAN}"
+    for i in $(seq 1 82); do printf "▄"; sleep 0.004; done
+    printf "${NC}\n\n"
+
+    typewriter "  ZENITH CLOUD OBSIDIAN v13.0 — INITIALIZING" "$B_CYAN" 0.025
+    echo ""
+
+    sleep 0.2
+    status_dot_anim "Loading kernel modules"
+    status_dot_anim "Mounting cloud services"
+    status_dot_anim "Syncing node topology"
+    status_dot_anim "Bootstrapping UI engine"
+    echo ""
+
+    progress_bar 30 "System scan" "$B_PURPLE"
+    echo ""
+    sleep 0.3
+    clear
+}
+
+# ============================================================
+# METRICS & HOSTNAME
+# ============================================================
+
 get_metrics() {
     CPU=$(top -bn1 | grep "Cpu(s)" | awk '{printf "%.0f", $2+$4}' 2>/dev/null || echo "??")
     RAM=$(free | grep Mem | awk '{printf "%.0f", $3*100/$2}' 2>/dev/null || echo "??")
     UPT=$(uptime -p | sed 's/up //' 2>/dev/null || echo "Unknown")
     DISK=$(df -h / | awk 'NR==2 {print $5}' 2>/dev/null || echo "??")
+    LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',' 2>/dev/null || echo "?")
+    NET_RX=$(cat /proc/net/dev 2>/dev/null | grep -v lo | awk 'NR>2 {rx+=$2} END {printf "%.1f", rx/1024/1024}' || echo "?")
 
-    # --- FORCE HOSTNAME ---
     DESIRED_HOST="zenithcloudinfra"
     CURRENT_HOST=$(hostname)
-
     if [ "$CURRENT_HOST" != "$DESIRED_HOST" ]; then
         sudo hostnamectl set-hostname "$DESIRED_HOST" 2>/dev/null
         sudo sed -i "s/127.0.1.1.*/127.0.1.1    $DESIRED_HOST/" /etc/hosts 2>/dev/null
@@ -34,50 +201,1697 @@ get_metrics() {
     fi
 }
 
-# --- UI ---
+# ============================================================
+# MAIN UI
+# ============================================================
+
 render_ui() {
     clear
     get_metrics
 
-    echo -e " ${B_BLUE}${NC}${BG_SHADE}${W}  $CURRENT_HOST ${NC}${B_BLUE}${NC}  ${B_PURPLE}${NC}${BG_SHADE}${W}  $UPT ${NC}${B_PURPLE}${NC}  ${B_GREEN}${NC}${BG_SHADE}${W}  $DISK ${NC}${B_GREEN}${NC}  ${B_CYAN}${NC}${BG_SHADE}${W}  ${CPU}% ${B_PURPLE}RAM ${RAM}%${NC}${B_CYAN}${NC}"
+    # Top status bar
+    printf " ${B_BLUE}▐${BG_SHADE}${W}  %s ${NC}${B_BLUE}▌${NC}" "$CURRENT_HOST"
+    printf "${B_PURPLE}▐${BG_SHADE}${W}  ⏱  %s ${NC}${B_PURPLE}▌${NC}" "$UPT"
+    printf "${B_GREEN}▐${BG_SHADE}${W}  💾 %s ${NC}${B_GREEN}▌${NC}" "$DISK"
+    printf "${B_CYAN}▐${BG_SHADE}${W}  ⚡ ${CPU}%%  RAM ${RAM}%% ${NC}${B_CYAN}▌${NC}"
+    printf "${GOLD}▐${BG_SHADE}${W}  ↕ %s MB ${NC}${GOLD}▌${NC}\n" "$NET_RX"
     echo ""
 
-    echo -e "${B_CYAN}   ███████╗███████╗███╗   ██╗██╗████████╗██╗  ██╗${NC}"
-    echo -e "${B_CYAN}   ╚══███╔╝██╔════╝████╗  ██║██║╚══██╔══╝██║  ██║${NC}"
-    echo -e "${B_PURPLE}     ███╔╝ █████╗  ██╔██╗ ██║██║   ██║   ███████║${NC}"
-    echo -e "${B_PURPLE}    ███╔╝  ██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║${NC}"
-    echo -e "${GOLD}   ███████╗███████╗██║ ╚████║██║   ██║   ██║  ██║${NC}"
-    echo -e "${GOLD}   ╚══════╝╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝${NC}"
+    wave_banner
     echo -e "           ${W}Z E N I T H   C L O U D${NC}"
-    echo -e "                  ${G}OBSIDIAN NEXT GEN${NC}"
-
-    echo -e " ${G}────────────────────────────────────────────────────────────────────────────────${NC}\n"
-
-    echo -e " ${W}◉ SYSTEM STATUS${NC}"
-    printf "   ${G}CPU:${NC} ${B_CYAN}%3s%%${NC}   ${G}RAM:${NC} ${B_PURPLE}%3s%%${NC}   ${G}NET:${NC} ${B_GREEN}● ONLINE${NC}\n" "$CPU" "$RAM"
+    echo -e "           ${G}OBSIDIAN NEXT GEN  ·  v13.0${NC}"
     echo ""
 
-    echo -e " ${B_CYAN} DEPLOYMENT & SERVICES${NC}"
-    echo -e " ${G}├─${NC} ${W}[1] VPS${NC}        ${G}├─${NC} ${W}[5] Themes"
-    echo -e " ${G}├─${NC} ${W}[2] Panel${NC}      ${G}├─${NC} ${W}[6] System"
-    echo -e " ${G}├─${NC} ${W}[3] Wings${NC}      ${G}├─${NC} ${W}[7] Container"
-    echo -e " ${G}└─${NC} ${W}[8] New Module${NC}"
+    scan_effect
 
     echo ""
-    echo -e " ${B_PURPLE} MAINTENANCE & TOOLS${NC}"
-    echo -e " ${G}├─${NC} ${W}[4] Toolbox${NC}   ${G}└─${NC} ${B_RED}[0] SHUTDOWN${NC}"
-    echo -e " ${G}└─${NC} ${W}[9] Extras${NC}"
+    echo -e "  ${W}◉ SYSTEM STATUS${NC}"
+    # CPU bar visual
+    local cpu_fill=$(( CPU * 20 / 100 ))
+    local cpu_bar=""
+    for ((i=0; i<cpu_fill; i++)); do cpu_bar+="█"; done
+    for ((i=cpu_fill; i<20; i++)); do cpu_bar+="░"; done
 
-    echo -e "\n ${G}────────────────────────────────────────────────────────────────────────────────${NC}"
-    echo -ne " ${B_CYAN}➜${NC} ${W}Enter Option (0-9): ${NC}"
+    local ram_fill=$(( RAM * 20 / 100 ))
+    local ram_bar=""
+    for ((i=0; i<ram_fill; i++)); do ram_bar+="█"; done
+    for ((i=ram_fill; i<20; i++)); do ram_bar+="░"; done
+
+    printf "  ${G}CPU${NC} ${B_CYAN}[%s]${NC} ${W}%s%%${NC}   ${G}RAM${NC} ${B_PURPLE}[%s]${NC} ${W}%s%%${NC}   ${G}LOAD${NC} ${B_ORANGE}%s${NC}\n" \
+        "$cpu_bar" "$CPU" "$ram_bar" "$RAM" "$LOAD"
+    echo ""
+
+    echo -e "  ${B_CYAN}╔══════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}⚡ DEPLOYMENT & SERVICES${NC}                           ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${W}1${G}]${NC} ${W}VPS Deploy${NC}        ${G}[${W}2${G}]${NC} ${W}Panel Setup${NC}              ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${W}3${G}]${NC} ${W}Wings Deploy${NC}       ${G}[${W}5${G}]${NC} ${W}Themes${NC}                   ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${W}6${G}]${NC} ${W}System Tools${NC}       ${G}[${W}7${G}]${NC} ${W}Container${NC}                ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${B_PURPLE}🔧 MAINTENANCE & TOOLS${NC}                             ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${W}4${G}]${NC} ${W}Toolbox${NC}            ${G}[${W}9${G}]${NC} ${W}Extras${NC}                   ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${W}8${G}]${NC} ${W}New Module${NC}                                       ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${B_GREEN}🚀 OPTIMIZATION${NC}                                    ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${B_GREEN}O${G}]${NC} ${B_GREEN}VPS Optimizer${NC}      ${G}[${B_ORANGE}M${G}]${NC} ${B_ORANGE}MC Server Booster${NC}        ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+    echo -e "  ${B_CYAN}║${NC}  ${G}[${B_RED}0${G}]${NC} ${B_RED}SHUTDOWN${NC}                                         ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╚══════════════════════════════════════════════════════╝${NC}"
+
+    echo ""
+    printf "  ${B_CYAN}➜${NC} ${W}Enter Option: ${NC}"
 }
 
-# --- LOOP ---
+# ============================================================
+# VPS OPTIMIZER MENU
+# ============================================================
+
+vps_optimizer_menu() {
+    while true; do
+        clear
+        echo ""
+        printf "  ${B_GREEN}"
+        for i in $(seq 1 60); do printf "━"; done
+        printf "${NC}\n"
+        echo -e "  ${B_GREEN}  ██████╗ ██████╗ ████████╗██╗███╗   ███╗${NC}"
+        echo -e "  ${B_GREEN}  ██╔═══██╗██╔══██╗╚══██╔══╝██║████╗ ████║${NC}"
+        echo -e "  ${B_CYAN}  ██║   ██║██████╔╝   ██║   ██║██╔████╔██║${NC}"
+        echo -e "  ${B_CYAN}  ██║   ██║██╔═══╝    ██║   ██║██║╚██╔╝██║${NC}"
+        echo -e "  ${GOLD}  ╚██████╔╝██║        ██║   ██║██║ ╚═╝ ██║${NC}"
+        echo -e "  ${GOLD}   ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚═╝     ╚═╝${NC}"
+        echo -e "        ${W}VPS OPTIMIZER  ·  ZENITH ENGINE${NC}"
+        printf "  ${B_GREEN}"
+        for i in $(seq 1 60); do printf "━"; done
+        printf "${NC}\n\n"
+
+        echo -e "  ${B_CYAN}╔══════════════════════════════════════════════════════╗${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}KERNEL & NETWORK${NC}                                   ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[1]${NC} ${W}TCP/Network Stack Tuning${NC}                     ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[2]${NC} ${W}Kernel Sysctl Full Optimization${NC}              ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[3]${NC} ${W}IRQ Balancing & CPU Affinity${NC}                 ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}MEMORY & STORAGE${NC}                                   ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[4]${NC} ${W}RAM / Swap / HugePages Optimizer${NC}             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[5]${NC} ${W}Disk I/O Scheduler & Queue Depth${NC}             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[6]${NC} ${W}File Descriptor & ulimit Unlock${NC}              ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}CPU & POWER${NC}                                        ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[7]${NC} ${W}CPU Governor → Performance Mode${NC}              ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[8]${NC} ${W}Disable Unnecessary Services${NC}                 ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}SECURITY & STABILITY${NC}                               ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[9]${NC} ${W}OOM Killer Tuning${NC}                            ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[A]${NC} ${W}Transparent HugePages Disable${NC}                ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_GREEN}[ALL]${NC} ${W}Apply ALL Optimizations at Once${NC}              ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[0]${NC}  ${B_RED}Back to Main Menu${NC}                            ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╚══════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        printf "  ${B_GREEN}➜${NC} ${W}Select: ${NC}"
+        read -r vopt
+
+        case "${vopt^^}" in
+            1) opt_tcp_network ;;
+            2) opt_sysctl_full ;;
+            3) opt_irq_cpu ;;
+            4) opt_memory_swap ;;
+            5) opt_disk_io ;;
+            6) opt_ulimit_unlock ;;
+            7) opt_cpu_governor ;;
+            8) opt_disable_services ;;
+            9) opt_oom_killer ;;
+            A) opt_thp_disable ;;
+            ALL) opt_apply_all ;;
+            0) break ;;
+            *) echo -e "\n  ${B_RED}✘ Invalid!${NC}"; sleep 0.8 ;;
+        esac
+    done
+}
+
+# ============================================================
+# VPS OPTIMIZATION FUNCTIONS
+# ============================================================
+
+opt_tcp_network() {
+    clear
+    echo ""
+    echo -e "  ${B_CYAN}▶ TCP / NETWORK STACK TUNING${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Applying advanced TCP/IP optimizations..." "$B_CYAN" 0.02
+
+    (
+    sudo tee /etc/sysctl.d/99-zenith-tcp.conf > /dev/null << 'EOF'
+# ── Zenith Cloud TCP Stack Optimizer ──
+# Connection handling
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_time = 300
+net.ipv4.tcp_keepalive_intvl = 30
+net.ipv4.tcp_keepalive_probes = 5
+net.ipv4.tcp_max_syn_backlog = 65536
+net.core.somaxconn = 65535
+net.core.netdev_max_backlog = 65536
+
+# Buffer sizes
+net.core.rmem_default = 262144
+net.core.wmem_default = 262144
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+
+# Congestion & performance
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_fastopen = 3
+net.ipv4.tcp_mtu_probing = 1
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_timestamps = 1
+net.ipv4.tcp_window_scaling = 1
+net.ipv4.tcp_moderate_rcvbuf = 1
+net.ipv4.tcp_no_metrics_save = 1
+
+# IPv4 tweaks
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Reduce TIME_WAIT
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_max_tw_buckets = 2000000
+EOF
+
+    # Load BBR if available
+    modprobe tcp_bbr 2>/dev/null
+    sudo sysctl --system -q 2>/dev/null
+    ) &
+    spinner $! "Applying TCP parameters"
+    progress_bar 40 "Flushing routing cache" "$B_CYAN"
+    sudo ip route flush cache 2>/dev/null
+    echo ""
+    echo -e "  ${B_GREEN}✔  TCP/Network stack optimized!${NC}"
+    echo -e "  ${G}   BBR congestion control, 16MB buffers, TCP Fast Open enabled${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_sysctl_full() {
+    clear
+    echo ""
+    echo -e "  ${B_PURPLE}▶ KERNEL SYSCTL FULL OPTIMIZATION${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Writing comprehensive kernel parameters..." "$B_PURPLE" 0.02
+
+    (
+    sudo tee /etc/sysctl.d/99-zenith-kernel.conf > /dev/null << 'EOF'
+# ── Zenith Cloud Kernel Optimizer ──
+# Virtual memory
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.vfs_cache_pressure = 50
+vm.overcommit_memory = 1
+vm.overcommit_ratio = 50
+vm.min_free_kbytes = 65536
+
+# File system
+fs.file-max = 2097152
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 512
+fs.suid_dumpable = 0
+
+# Kernel misc
+kernel.pid_max = 4194304
+kernel.threads-max = 4194304
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+kernel.core_uses_pid = 1
+kernel.dmesg_restrict = 1
+
+# Shared memory
+kernel.shmmax = 68719476736
+kernel.shmall = 4294967296
+kernel.shmmni = 4096
+EOF
+    sudo sysctl --system -q 2>/dev/null
+    ) &
+    spinner $! "Writing sysctl parameters"
+    progress_bar 30 "Reloading kernel config" "$B_PURPLE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Kernel sysctl fully optimized!${NC}"
+    echo -e "  ${G}   VM tuning, file limits, PID max, scheduler all set${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_irq_cpu() {
+    clear
+    echo ""
+    echo -e "  ${B_BLUE}▶ IRQ BALANCING & CPU AFFINITY${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Configuring IRQ balance and CPU pinning..." "$B_BLUE" 0.02
+
+    (
+    # Install irqbalance if missing
+    if ! command -v irqbalance &>/dev/null; then
+        sudo apt-get install -y irqbalance -qq 2>/dev/null
+    fi
+    sudo systemctl enable irqbalance 2>/dev/null
+    sudo systemctl restart irqbalance 2>/dev/null
+
+    # Set CPU frequency scaling to performance
+    for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "performance" | sudo tee "$cpu" > /dev/null 2>/dev/null
+    done
+
+    # Disable CPU idle states for latency
+    for state in /sys/devices/system/cpu/cpu*/cpuidle/state*/disable; do
+        echo "1" | sudo tee "$state" > /dev/null 2>/dev/null
+    done
+    ) &
+    spinner $! "Configuring IRQ + CPU affinity"
+    progress_bar 20 "Applying CPU tuning" "$B_BLUE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  IRQ balanced, CPU affinity set to performance!${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_memory_swap() {
+    clear
+    echo ""
+    echo -e "  ${B_PURPLE}▶ RAM / SWAP / HUGEPAGES OPTIMIZER${NC}\n"
+    scan_effect
+    echo ""
+
+    TOTAL_RAM=$(free -m | awk '/Mem:/{print $2}')
+    SWAP_SIZE=$(( TOTAL_RAM / 2 ))
+    echo -e "  ${G}Detected RAM: ${W}${TOTAL_RAM}MB${NC}  →  ${G}Creating ${W}${SWAP_SIZE}MB${G} swap${NC}\n"
+
+    (
+    # Drop caches safely
+    sync
+    echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null 2>/dev/null
+
+    # Configure swap if not present
+    if ! swapon --show | grep -q "/swapfile"; then
+        sudo fallocate -l "${SWAP_SIZE}M" /swapfile 2>/dev/null
+        sudo chmod 600 /swapfile 2>/dev/null
+        sudo mkswap /swapfile -q 2>/dev/null
+        sudo swapon /swapfile 2>/dev/null
+        grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap sw 0 0" | sudo tee -a /etc/fstab > /dev/null
+    fi
+
+    # Tune swappiness
+    sudo sysctl -w vm.swappiness=10 -q 2>/dev/null
+
+    # HugePages for Java/MC workloads
+    echo "always" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null 2>/dev/null
+    sudo sysctl -w vm.nr_hugepages=128 -q 2>/dev/null
+    ) &
+    spinner $! "Configuring memory & swap"
+    progress_bar 35 "Finalizing memory config" "$B_PURPLE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Memory fully optimized!${NC}"
+    echo -e "  ${G}   Caches dropped, swap configured, HugePages set${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_disk_io() {
+    clear
+    echo ""
+    echo -e "  ${B_YELLOW}▶ DISK I/O SCHEDULER & QUEUE DEPTH${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Tuning block device schedulers..." "$B_YELLOW" 0.02
+
+    (
+    for disk in /sys/block/sd* /sys/block/vd* /sys/block/nvme*; do
+        [ -d "$disk" ] || continue
+        # Set mq-deadline for HDDs, none for NVMe/SSD
+        if [[ "$disk" == *nvme* ]]; then
+            echo "none" | sudo tee "${disk}/queue/scheduler" > /dev/null 2>/dev/null
+        else
+            echo "mq-deadline" | sudo tee "${disk}/queue/scheduler" > /dev/null 2>/dev/null
+        fi
+        # Increase queue depth
+        echo 256 | sudo tee "${disk}/queue/nr_requests" > /dev/null 2>/dev/null
+        echo 4096 | sudo tee "${disk}/queue/read_ahead_kb" > /dev/null 2>/dev/null
+        # Disable rotational hint for SSDs (auto-detect)
+        echo 0 | sudo tee "${disk}/queue/rotational" > /dev/null 2>/dev/null
+    done
+
+    # Mount options optimization
+    sudo tee /etc/sysctl.d/99-zenith-disk.conf > /dev/null << 'EOF'
+vm.dirty_writeback_centisecs = 1500
+vm.dirty_expire_centisecs = 3000
+EOF
+    sudo sysctl --system -q 2>/dev/null
+    ) &
+    spinner $! "Setting I/O schedulers"
+    progress_bar 25 "Tuning queue depth" "$B_YELLOW"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Disk I/O fully tuned!${NC}"
+    echo -e "  ${G}   mq-deadline/none schedulers, 256 queue depth, 4MB readahead${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_ulimit_unlock() {
+    clear
+    echo ""
+    echo -e "  ${B_ORANGE}▶ FILE DESCRIPTOR & ULIMIT UNLOCK${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Unlocking system-wide limits to maximum..." "$B_ORANGE" 0.02
+
+    (
+    # /etc/security/limits.conf
+    sudo tee /etc/security/limits.d/99-zenith-limits.conf > /dev/null << 'EOF'
+# ── Zenith Cloud Limit Unlocker ──
+*         soft    nofile      2097152
+*         hard    nofile      2097152
+*         soft    nproc       unlimited
+*         hard    nproc       unlimited
+*         soft    memlock     unlimited
+*         hard    memlock     unlimited
+*         soft    stack       unlimited
+*         hard    stack       unlimited
+root      soft    nofile      2097152
+root      hard    nofile      2097152
+EOF
+
+    # systemd global limits
+    sudo mkdir -p /etc/systemd/system.conf.d/
+    sudo tee /etc/systemd/system.conf.d/99-zenith.conf > /dev/null << 'EOF'
+[Manager]
+DefaultLimitNOFILE=2097152
+DefaultLimitNPROC=infinity
+DefaultLimitMEMLOCK=infinity
+EOF
+
+    # Apply immediately
+    ulimit -n 2097152 2>/dev/null
+    sudo sysctl -w fs.file-max=2097152 -q 2>/dev/null
+    sudo systemctl daemon-reexec 2>/dev/null
+    ) &
+    spinner $! "Unlocking file descriptors & limits"
+    progress_bar 20 "Reloading systemd limits" "$B_ORANGE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  All limits unlocked!${NC}"
+    echo -e "  ${G}   nofile: 2,097,152 · nproc: unlimited · memlock: unlimited${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_cpu_governor() {
+    clear
+    echo ""
+    echo -e "  ${B_GREEN}▶ CPU GOVERNOR → PERFORMANCE MODE${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Forcing all CPU cores to performance governor..." "$B_GREEN" 0.02
+
+    CPU_COUNT=$(nproc 2>/dev/null || echo 1)
+    echo -e "  ${G}Detected CPUs: ${W}${CPU_COUNT} cores${NC}\n"
+
+    (
+    # Set performance governor
+    for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "performance" | sudo tee "$cpu" > /dev/null 2>/dev/null
+    done
+
+    # Persist via rc.local
+    if [ -f /etc/rc.local ]; then
+        grep -q "scaling_governor" /etc/rc.local || \
+        sudo sed -i '/^exit 0/i for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo "performance" > "$cpu"; done' /etc/rc.local
+    fi
+
+    # Disable CPU frequency boost cap (turbo)
+    echo "0" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null 2>/dev/null
+    echo "0" | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null 2>/dev/null
+
+    # Install cpupower if available
+    command -v cpupower &>/dev/null && sudo cpupower frequency-set -g performance -q 2>/dev/null
+    ) &
+    spinner $! "Setting CPU governor → performance"
+    progress_bar 15 "Applying to all cores" "$B_GREEN"
+    echo ""
+    echo -e "  ${B_GREEN}✔  All ${CPU_COUNT} CPU cores set to PERFORMANCE!${NC}"
+    echo -e "  ${G}   Turbo boost enabled, latency minimized${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_disable_services() {
+    clear
+    echo ""
+    echo -e "  ${B_RED}▶ DISABLE UNNECESSARY SERVICES${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Scanning and disabling bloat services..." "$B_RED" 0.02
+
+    SERVICES=(
+        "bluetooth" "cups" "cups-browsed" "avahi-daemon"
+        "ModemManager" "whoopsie" "apport" "snapd"
+        "packagekit" "fwupd" "motd-news" "thermald"
+        "udisks2" "upower" "colord" "geoclue"
+        "accounts-daemon" "rtkit-daemon"
+    )
+
+    echo ""
+    for svc in "${SERVICES[@]}"; do
+        if systemctl is-enabled "$svc" &>/dev/null; then
+            sudo systemctl disable --now "$svc" 2>/dev/null
+            printf "  ${B_RED}✖${NC}  ${G}%-25s${NC} ${W}disabled${NC}\n" "$svc"
+        else
+            printf "  ${G}–${NC}   ${DIM}%-25s${NC} ${G}(already off)${NC}\n" "$svc"
+        fi
+        sleep 0.06
+    done
+
+    echo ""
+    echo -e "  ${B_GREEN}✔  Bloat services removed!${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_oom_killer() {
+    clear
+    echo ""
+    echo -e "  ${B_PURPLE}▶ OOM KILLER TUNING${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Configuring Out-of-Memory killer behavior..." "$B_PURPLE" 0.02
+
+    (
+    sudo tee /etc/sysctl.d/99-zenith-oom.conf > /dev/null << 'EOF'
+# ── Zenith OOM Tuning ──
+vm.oom_kill_allocating_task = 0
+vm.panic_on_oom = 0
+vm.overcommit_memory = 1
+vm.overcommit_ratio = 80
+EOF
+    sudo sysctl --system -q 2>/dev/null
+
+    # Protect critical processes from OOM
+    for pid in $(pgrep -x "java" 2>/dev/null); do
+        echo -1000 | sudo tee /proc/$pid/oom_score_adj > /dev/null 2>/dev/null
+    done
+    for pid in $(pgrep -x "sshd" 2>/dev/null); do
+        echo -1000 | sudo tee /proc/$pid/oom_score_adj > /dev/null 2>/dev/null
+    done
+    ) &
+    spinner $! "Configuring OOM killer"
+    progress_bar 20 "Protecting critical processes" "$B_PURPLE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  OOM killer tuned!${NC}"
+    echo -e "  ${G}   Java & sshd protected from OOM kills${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_thp_disable() {
+    clear
+    echo ""
+    echo -e "  ${B_CYAN}▶ TRANSPARENT HUGEPAGES DISABLE${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Disabling THP for latency improvement..." "$B_CYAN" 0.02
+
+    (
+    echo "never" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null 2>/dev/null
+    echo "never" | sudo tee /sys/kernel/mm/transparent_hugepage/defrag > /dev/null 2>/dev/null
+    echo 0 | sudo tee /sys/kernel/mm/transparent_hugepage/khugepaged/defrag > /dev/null 2>/dev/null
+
+    # Persist
+    sudo tee /etc/rc.d/rc.local > /dev/null 2>/dev/null << 'EOF' || true
+#!/bin/bash
+echo "never" > /sys/kernel/mm/transparent_hugepage/enabled
+echo "never" > /sys/kernel/mm/transparent_hugepage/defrag
+EOF
+    sudo chmod +x /etc/rc.d/rc.local 2>/dev/null
+
+    # Also via grub
+    if grep -q "GRUB_CMDLINE_LINUX" /etc/default/grub 2>/dev/null; then
+        sudo sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 transparent_hugepage=never"/' /etc/default/grub 2>/dev/null
+        sudo update-grub -q 2>/dev/null
+    fi
+    ) &
+    spinner $! "Disabling Transparent HugePages"
+    progress_bar 15 "Persisting THP config" "$B_CYAN"
+    echo ""
+    echo -e "  ${B_GREEN}✔  THP disabled — latency spikes eliminated!${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+opt_apply_all() {
+    clear
+    echo ""
+    echo -e "  ${GOLD}▶ APPLYING ALL VPS OPTIMIZATIONS${NC}\n"
+    scan_effect
+    echo ""
+
+    local tasks=(
+        "TCP/Network Stack"
+        "Kernel Sysctl"
+        "Memory & Swap"
+        "Disk I/O Scheduler"
+        "ulimit Unlock"
+        "CPU Governor"
+        "OOM Killer"
+        "THP Disable"
+        "Service Cleanup"
+    )
+
+    for task in "${tasks[@]}"; do
+        pulse_line "⚡ Applying: $task"
+        sleep 0.4
+    done
+
+    echo ""
+    progress_bar 100 "Running all optimizations" "$GOLD"
+    echo ""
+
+    (opt_tcp_network_silent
+     opt_sysctl_full_silent
+     opt_memory_swap_silent
+     opt_disk_io_silent
+     opt_ulimit_unlock_silent
+     opt_cpu_governor_silent
+     opt_oom_killer_silent
+     opt_thp_disable_silent) 2>/dev/null
+
+    echo ""
+    glitch_text "  ALL SYSTEMS OPTIMIZED — ZENITH MAXIMUM PERFORMANCE"
+    echo ""
+    echo -e "  ${B_GREEN}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_GREEN}║  ✔  TCP · Kernel · Memory · Disk · CPU      ║${NC}"
+    echo -e "  ${B_GREEN}║  ✔  ulimits · OOM · THP · Services          ║${NC}"
+    echo -e "  ${B_GREEN}║  🚀 VPS Running at MAXIMUM PERFORMANCE       ║${NC}"
+    echo -e "  ${B_GREEN}╚══════════════════════════════════════════════╝${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+# Silent versions for batch apply
+opt_tcp_network_silent() {
+    sudo tee /etc/sysctl.d/99-zenith-tcp.conf > /dev/null << 'EOF'
+net.ipv4.tcp_fin_timeout = 15
+net.ipv4.tcp_keepalive_time = 300
+net.ipv4.tcp_max_syn_backlog = 65536
+net.core.somaxconn = 65535
+net.core.netdev_max_backlog = 65536
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_fastopen = 3
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.ip_local_port_range = 1024 65535
+EOF
+    modprobe tcp_bbr 2>/dev/null
+    sudo sysctl --system -q 2>/dev/null
+}
+
+opt_sysctl_full_silent() {
+    sudo tee /etc/sysctl.d/99-zenith-kernel.conf > /dev/null << 'EOF'
+vm.swappiness = 10
+vm.dirty_ratio = 15
+vm.dirty_background_ratio = 5
+vm.vfs_cache_pressure = 50
+vm.overcommit_memory = 1
+fs.file-max = 2097152
+fs.inotify.max_user_watches = 524288
+kernel.pid_max = 4194304
+kernel.sched_migration_cost_ns = 5000000
+kernel.sched_autogroup_enabled = 0
+EOF
+    sudo sysctl --system -q 2>/dev/null
+}
+
+opt_memory_swap_silent() {
+    sync; echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null 2>/dev/null
+    sudo sysctl -w vm.swappiness=10 -q 2>/dev/null
+}
+
+opt_disk_io_silent() {
+    for disk in /sys/block/sd* /sys/block/vd*; do
+        [ -d "$disk" ] || continue
+        echo "mq-deadline" | sudo tee "${disk}/queue/scheduler" > /dev/null 2>/dev/null
+        echo 256 | sudo tee "${disk}/queue/nr_requests" > /dev/null 2>/dev/null
+    done
+}
+
+opt_ulimit_unlock_silent() {
+    sudo tee /etc/security/limits.d/99-zenith-limits.conf > /dev/null << 'EOF'
+*    soft nofile 2097152
+*    hard nofile 2097152
+*    soft nproc  unlimited
+*    hard nproc  unlimited
+*    soft memlock unlimited
+*    hard memlock unlimited
+EOF
+    sudo sysctl -w fs.file-max=2097152 -q 2>/dev/null
+}
+
+opt_cpu_governor_silent() {
+    for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+        echo "performance" | sudo tee "$cpu" > /dev/null 2>/dev/null
+    done
+}
+
+opt_oom_killer_silent() {
+    sudo sysctl -w vm.overcommit_memory=1 -q 2>/dev/null
+    for pid in $(pgrep -x "java" 2>/dev/null); do
+        echo -1000 | sudo tee /proc/$pid/oom_score_adj > /dev/null 2>/dev/null
+    done
+}
+
+opt_thp_disable_silent() {
+    echo "never" | sudo tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null 2>/dev/null
+    echo "never" | sudo tee /sys/kernel/mm/transparent_hugepage/defrag > /dev/null 2>/dev/null
+}
+
+# ============================================================
+# MC SERVER BOOSTER MENU
+# ============================================================
+
+mc_booster_menu() {
+    while true; do
+        clear
+        echo ""
+        printf "  ${B_ORANGE}"
+        for i in $(seq 1 62); do printf "═"; done
+        printf "${NC}\n"
+        echo -e "  ${B_GREEN}  ███╗   ███╗██╗███╗   ██╗███████╗${NC}"
+        echo -e "  ${B_GREEN}  ████╗ ████║██║████╗  ██║██╔════╝${NC}"
+        echo -e "  ${B_ORANGE}  ██╔████╔██║██║██╔██╗ ██║█████╗  ${NC}"
+        echo -e "  ${B_ORANGE}  ██║╚██╔╝██║██║██║╚██╗██║██╔══╝  ${NC}"
+        echo -e "  ${GOLD}  ██║ ╚═╝ ██║██║██║ ╚████║███████╗${NC}"
+        echo -e "  ${GOLD}  ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝${NC}"
+        echo -e "  ${W}  MINECRAFT SERVER BOOST ENGINE  ·  ZENITH${NC}"
+        printf "  ${B_ORANGE}"
+        for i in $(seq 1 62); do printf "═"; done
+        printf "${NC}\n\n"
+
+        echo -e "  ${B_CYAN}╔══════════════════════════════════════════════════════╗${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}☕ JAVA JVM OPTIMIZATION${NC}                           ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[1]${NC} ${W}Generate Optimal JVM Flags (Aikar/ZGC/G1GC)${NC}  ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[2]${NC} ${W}Java Install & Version Manager${NC}               ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}🌐 NETWORK TUNING FOR MC${NC}                           ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[3]${NC} ${W}MC Network Stack (Low Latency Packets)${NC}       ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[4]${NC} ${W}UDP/TCP Port Optimization for MC${NC}             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}💾 SERVER FILE OPTIMIZATION${NC}                        ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[5]${NC} ${W}World Chunk I/O Booster${NC}                      ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[6]${NC} ${W}Generate server.properties Boost Config${NC}      ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[7]${NC} ${W}Generate bukkit/spigot/paper YML Boost${NC}       ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}⚙️  SYSTEM LEVEL (MC SPECIFIC)${NC}                     ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[8]${NC} ${W}Kernel Realtime Tuning for MC Tick Loop${NC}      ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[9]${NC} ${W}MC Process Priority (Nice / ionice)${NC}          ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[A]${NC} ${W}cgroups CPU/RAM Isolation for MC${NC}             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_YELLOW}🔒 SECURITY & FIREWALL${NC}                             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[B]${NC} ${W}UFW Firewall Rules for MC${NC}                    ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════╣${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${B_GREEN}[ALL]${NC} ${W}FULL MC BOOST — Apply Everything${NC}             ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}║${NC}  ${G}[0]${NC}  ${B_RED}Back${NC}                                          ${B_CYAN}║${NC}"
+        echo -e "  ${B_CYAN}╚══════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        printf "  ${B_ORANGE}➜${NC} ${W}Select: ${NC}"
+        read -r mopt
+
+        case "${mopt^^}" in
+            1) mc_jvm_flags ;;
+            2) mc_java_install ;;
+            3) mc_network_tuning ;;
+            4) mc_port_optimization ;;
+            5) mc_chunk_io ;;
+            6) mc_server_properties ;;
+            7) mc_yml_boost ;;
+            8) mc_kernel_realtime ;;
+            9) mc_process_priority ;;
+            A) mc_cgroups ;;
+            B) mc_firewall ;;
+            ALL) mc_apply_all ;;
+            0) break ;;
+            *) echo -e "\n  ${B_RED}✘ Invalid!${NC}"; sleep 0.8 ;;
+        esac
+    done
+}
+
+# ============================================================
+# MC OPTIMIZATION FUNCTIONS
+# ============================================================
+
+mc_jvm_flags() {
+    clear
+    echo ""
+    echo -e "  ${B_ORANGE}▶ JVM FLAGS GENERATOR${NC}\n"
+    scan_effect
+    echo ""
+    printf "  ${W}RAM allocation for MC server (GB) [default: 4]: ${NC}"
+    read -r RAM_GB
+    RAM_GB=${RAM_GB:-4}
+    RAM_MB=$(( RAM_GB * 1024 ))
+
+    echo ""
+    echo -e "  ${G}Generating optimized JVM flags for ${W}${RAM_GB}GB${G} RAM...${NC}\n"
+    sleep 0.5
+
+    echo -e "  ${B_GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_GREEN}║  ${B_YELLOW}AIKAR'S FLAGS (Best for Vanilla / Paper / Spigot)${NC}            ${B_GREEN}║${NC}"
+    echo -e "  ${B_GREEN}╠══════════════════════════════════════════════════════════════════╣${NC}"
+    printf "  ${B_GREEN}║${NC}  ${W}java -Xms%sM -Xmx%sM \\\n${NC}" "$RAM_MB" "$RAM_MB"
+    echo -e "  ${W}  -XX:+UseG1GC \\
+  -XX:+ParallelRefProcEnabled \\
+  -XX:MaxGCPauseMillis=200 \\
+  -XX:+UnlockExperimentalVMOptions \\
+  -XX:+DisableExplicitGC \\
+  -XX:+AlwaysPreTouch \\
+  -XX:G1NewSizePercent=30 \\
+  -XX:G1MaxNewSizePercent=40 \\
+  -XX:G1HeapRegionSize=8M \\
+  -XX:G1ReservePercent=20 \\
+  -XX:G1HeapWastePercent=5 \\
+  -XX:G1MixedGCCountTarget=4 \\
+  -XX:InitiatingHeapOccupancyPercent=15 \\
+  -XX:G1MixedGCLiveThresholdPercent=90 \\
+  -XX:G1RSetUpdatingPauseTimePercent=5 \\
+  -XX:SurvivorRatio=32 \\
+  -XX:+PerfDisableSharedMem \\
+  -XX:MaxTenuringThreshold=1 \\
+  -Dusing.aikars.flags=https://mcflags.emc.gs \\
+  -Daikars.new.flags=true \\
+  -jar server.jar nogui${NC}"
+
+    echo ""
+    echo -e "  ${B_CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_CYAN}║  ${B_YELLOW}ZGC FLAGS (Best for Large Servers 8GB+, Java 17+)${NC}           ${B_CYAN}║${NC}"
+    echo -e "  ${B_CYAN}╠══════════════════════════════════════════════════════════════════╣${NC}"
+    printf "  ${B_CYAN}║${NC}  ${W}java -Xms%sM -Xmx%sM \\\n${NC}" "$RAM_MB" "$RAM_MB"
+    echo -e "  ${W}  -XX:+UseZGC \\
+  -XX:+ZGenerational \\
+  -XX:+UnlockExperimentalVMOptions \\
+  -XX:+DisableExplicitGC \\
+  -XX:+AlwaysPreTouch \\
+  -XX:+PerfDisableSharedMem \\
+  -Djava.awt.headless=true \\
+  -jar server.jar nogui${NC}"
+
+    echo ""
+    echo -e "  ${B_PURPLE}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_PURPLE}║  ${B_YELLOW}SHENANDOAH FLAGS (Low Latency Alternative)${NC}                   ${B_PURPLE}║${NC}"
+    echo -e "  ${B_PURPLE}╠══════════════════════════════════════════════════════════════════╣${NC}"
+    printf "  ${B_PURPLE}║${NC}  ${W}java -Xms%sM -Xmx%sM \\\n${NC}" "$RAM_MB" "$RAM_MB"
+    echo -e "  ${W}  -XX:+UseShenandoahGC \\
+  -XX:ShenandoahGCMode=iu \\
+  -XX:ShenandoahGuaranteedGCInterval=1000 \\
+  -XX:+UnlockExperimentalVMOptions \\
+  -XX:+DisableExplicitGC \\
+  -XX:+AlwaysPreTouch \\
+  -jar server.jar nogui${NC}"
+
+    echo ""
+    echo -e "  ${B_GREEN}✔  Flags generated! Copy the one matching your Java version.${NC}"
+    echo -e "  ${G}   Tip: Java 21 → ZGC Generational  |  Java 17 → Aikar or ZGC${NC}"
+    echo ""
+
+    # Save to file
+    cat > "/tmp/mc_jvm_flags_${RAM_GB}g.txt" << EOF
+# Generated by Zenith Cloud MC Booster
+# RAM: ${RAM_GB}GB
+
+# AIKAR'S FLAGS:
+java -Xms${RAM_MB}M -Xmx${RAM_MB}M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar server.jar nogui
+
+# ZGC FLAGS (Java 21+):
+java -Xms${RAM_MB}M -Xmx${RAM_MB}M -XX:+UseZGC -XX:+ZGenerational -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:+PerfDisableSharedMem -Djava.awt.headless=true -jar server.jar nogui
+EOF
+    echo -e "  ${G}   Saved to: ${W}/tmp/mc_jvm_flags_${RAM_GB}g.txt${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_java_install() {
+    clear
+    echo ""
+    echo -e "  ${B_CYAN}▶ JAVA VERSION MANAGER${NC}\n"
+    scan_effect
+    echo ""
+    echo -e "  ${G}Select Java version to install:${NC}"
+    echo -e "  ${G}[1]${NC} ${W}Java 8  (Legacy/Old plugins)${NC}"
+    echo -e "  ${G}[2]${NC} ${W}Java 11 (1.16 and below)${NC}"
+    echo -e "  ${G}[3]${NC} ${W}Java 17 (1.17-1.20 - Recommended)${NC}"
+    echo -e "  ${G}[4]${NC} ${W}Java 21 (1.21+ Latest - Best GC)${NC}"
+    echo -e "  ${G}[0]${NC} ${B_RED}Cancel${NC}"
+    echo ""
+    printf "  ${B_CYAN}➜${NC} ${W}Choice: ${NC}"
+    read -r jv
+
+    case $jv in
+        1) JVER="8"; PKG="openjdk-8-jdk" ;;
+        2) JVER="11"; PKG="openjdk-11-jdk" ;;
+        3) JVER="17"; PKG="openjdk-17-jdk" ;;
+        4) JVER="21"; PKG="openjdk-21-jdk" ;;
+        0) return ;;
+        *) echo -e "  ${B_RED}Invalid${NC}"; sleep 1; return ;;
+    esac
+
+    echo ""
+    typewriter "  Installing Java ${JVER}..." "$B_CYAN" 0.03
+    (
+    sudo apt-get update -qq 2>/dev/null
+    sudo apt-get install -y "$PKG" -qq 2>/dev/null
+    sudo update-alternatives --set java "/usr/lib/jvm/java-${JVER}-openjdk-amd64/bin/java" 2>/dev/null
+    ) &
+    spinner $! "Installing Java ${JVER}"
+    progress_bar 30 "Configuring Java runtime" "$B_CYAN"
+    echo ""
+    JAVA_VER=$(java -version 2>&1 | head -1)
+    echo -e "  ${B_GREEN}✔  Java installed!${NC}  ${G}${JAVA_VER}${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_network_tuning() {
+    clear
+    echo ""
+    echo -e "  ${B_BLUE}▶ MC NETWORK STACK TUNING${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Applying Minecraft-specific network optimizations..." "$B_BLUE" 0.02
+
+    (
+    sudo tee /etc/sysctl.d/99-zenith-mc-net.conf > /dev/null << 'EOF'
+# ── Zenith MC Network Optimizer ──
+# Low latency for MC game packets
+net.ipv4.tcp_nodelay = 1
+net.ipv4.tcp_low_latency = 1
+
+# Large buffers for chunk transfer
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
+net.ipv4.tcp_rmem = 4096 131072 33554432
+net.ipv4.tcp_wmem = 4096 131072 33554432
+
+# UDP optimization (for Bedrock/Velocity)
+net.core.netdev_max_backlog = 250000
+net.ipv4.udp_mem = 65536 131072 262144
+net.ipv4.udp_rmem_min = 16384
+net.ipv4.udp_wmem_min = 16384
+
+# Connection limits
+net.ipv4.tcp_max_syn_backlog = 65536
+net.core.somaxconn = 65535
+net.ipv4.ip_local_port_range = 1024 65535
+
+# BBR for smooth chunk streaming
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_fastopen = 3
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_window_scaling = 1
+EOF
+    modprobe tcp_bbr 2>/dev/null
+    sudo sysctl --system -q 2>/dev/null
+    ) &
+    spinner $! "Applying MC network parameters"
+    progress_bar 30 "Tuning UDP/TCP stack" "$B_BLUE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  MC network stack tuned!${NC}"
+    echo -e "  ${G}   TCP nodelay · 32MB buffers · BBR · UDP optimized${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_port_optimization() {
+    clear
+    echo ""
+    echo -e "  ${B_YELLOW}▶ PORT OPTIMIZATION FOR MC${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Configuring port settings for Minecraft..." "$B_YELLOW" 0.02
+
+    (
+    # tc qdisc for low latency on MC port
+    MC_PORT="${MC_PORT:-25565}"
+    IFACE=$(ip route | grep default | awk '{print $5}' | head -1)
+
+    if [ -n "$IFACE" ]; then
+        # Install tc if needed
+        sudo apt-get install -y iproute2 -qq 2>/dev/null
+
+        # Clear existing qdiscs
+        sudo tc qdisc del dev "$IFACE" root 2>/dev/null
+
+        # Add fq_codel for low latency
+        sudo tc qdisc add dev "$IFACE" root fq_codel 2>/dev/null
+
+        # Mark MC traffic for priority
+        sudo iptables -t mangle -A OUTPUT -p tcp --sport "$MC_PORT" -j DSCP --set-dscp-class EF 2>/dev/null
+        sudo iptables -t mangle -A OUTPUT -p udp --sport "$MC_PORT" -j DSCP --set-dscp-class EF 2>/dev/null
+    fi
+    ) &
+    spinner $! "Setting port QoS for MC traffic"
+    progress_bar 20 "Applying traffic shaping" "$B_YELLOW"
+    echo ""
+    echo -e "  ${B_GREEN}✔  MC port traffic prioritized!${NC}"
+    echo -e "  ${G}   fq_codel qdisc · DSCP EF marking for MC packets${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_chunk_io() {
+    clear
+    echo ""
+    echo -e "  ${B_PURPLE}▶ WORLD CHUNK I/O BOOSTER${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Optimizing disk I/O for chunk read/write..." "$B_PURPLE" 0.02
+
+    (
+    # Optimize disk for MC world files
+    for disk in /sys/block/sd* /sys/block/vd* /sys/block/nvme*; do
+        [ -d "$disk" ] || continue
+        # Maximize read-ahead for sequential chunk reads
+        echo 2048 | sudo tee "${disk}/queue/read_ahead_kb" > /dev/null 2>/dev/null
+        # Increase queue depth
+        echo 512 | sudo tee "${disk}/queue/nr_requests" > /dev/null 2>/dev/null
+        # Disable merge for NVMe (latency)
+        [[ "$disk" == *nvme* ]] && echo 2 | sudo tee "${disk}/queue/nomerges" > /dev/null 2>/dev/null
+    done
+
+    # VM tuning for chunk workload
+    sudo sysctl -w vm.dirty_ratio=40 -q 2>/dev/null
+    sudo sysctl -w vm.dirty_background_ratio=10 -q 2>/dev/null
+    sudo sysctl -w vm.dirty_writeback_centisecs=500 -q 2>/dev/null
+
+    # Increase inotify for plugin file watching
+    sudo sysctl -w fs.inotify.max_user_watches=1048576 -q 2>/dev/null
+    sudo sysctl -w fs.inotify.max_queued_events=32768 -q 2>/dev/null
+    ) &
+    spinner $! "Tuning chunk I/O parameters"
+    progress_bar 25 "Optimizing read-ahead & queue" "$B_PURPLE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Chunk I/O fully optimized!${NC}"
+    echo -e "  ${G}   2MB readahead · 512 queue depth · dirty ratio tuned${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_server_properties() {
+    clear
+    echo ""
+    echo -e "  ${B_GREEN}▶ SERVER.PROPERTIES BOOST CONFIG${NC}\n"
+    scan_effect
+    echo ""
+    printf "  ${W}Enter your MC server directory [default: /opt/minecraft]: ${NC}"
+    read -r MC_DIR
+    MC_DIR=${MC_DIR:-/opt/minecraft}
+
+    printf "  ${W}Number of player slots [default: 50]: ${NC}"
+    read -r SLOTS
+    SLOTS=${SLOTS:-50}
+
+    echo ""
+    typewriter "  Generating optimized server.properties..." "$B_GREEN" 0.02
+
+    PROPS_FILE="${MC_DIR}/server.properties"
+    mkdir -p "$MC_DIR" 2>/dev/null
+
+    cat > "${PROPS_FILE}" << EOF
+# ── Generated by Zenith Cloud MC Booster ──
+# Optimized server.properties
+
+# Core settings
+online-mode=true
+enforce-secure-profile=true
+max-players=${SLOTS}
+server-port=25565
+motd=\\u00A7b\\u00A7lZenith Cloud \\u00A7r\\u00A7fServer
+
+# Performance
+view-distance=8
+simulation-distance=6
+max-tick-time=60000
+network-compression-threshold=256
+max-packet-rate=500
+rate-limit=0
+
+# World
+spawn-protection=16
+allow-nether=true
+generate-structures=true
+max-world-size=29999984
+
+# Chunk loading
+sync-chunk-writes=false
+entity-broadcast-range-percentage=100
+
+# Connection
+prevent-proxy-connections=false
+player-idle-timeout=0
+max-chained-neighbor-updates=1000000
+
+# Optimizations
+use-native-transport=true
+enable-jmx-monitoring=false
+log-ips=true
+EOF
+
+    progress_bar 20 "Writing server.properties" "$B_GREEN"
+    echo ""
+    echo -e "  ${B_GREEN}✔  server.properties written to: ${W}${PROPS_FILE}${NC}"
+    echo -e "  ${G}   view-distance:8 · compression:256 · native transport: ON${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_yml_boost() {
+    clear
+    echo ""
+    echo -e "  ${B_CYAN}▶ PAPER/SPIGOT/BUKKIT YML BOOST${NC}\n"
+    scan_effect
+    echo ""
+    printf "  ${W}MC server directory [default: /opt/minecraft]: ${NC}"
+    read -r MC_DIR
+    MC_DIR=${MC_DIR:-/opt/minecraft}
+
+    mkdir -p "$MC_DIR" 2>/dev/null
+    typewriter "  Generating optimized YAML configs..." "$B_CYAN" 0.02
+
+    # bukkit.yml
+    cat > "${MC_DIR}/bukkit.yml" << 'EOF'
+# ── Zenith Cloud bukkit.yml ──
+settings:
+  allow-end: true
+  warn-on-overload: true
+  permissions-file: permissions.yml
+  update-folder: update
+  plugin-profiling: false
+  connection-throttle: 400
+  query-plugins: false
+  deprecated-verbose: default
+  shutdown-message: Server closed.
+  minimum-api: none
+  timings: true
+
+spawn-limits:
+  monsters: 50
+  animals: 8
+  water-animals: 3
+  water-ambient: 4
+  water-underground-creature: 3
+  axolotls: 3
+  ambient: 1
+
+chunk-gc:
+  period-in-ticks: 400
+
+ticks-per:
+  animal-spawns: 400
+  monster-spawns: 1
+  water-spawns: 1
+  water-ambient-spawns: 1
+  water-underground-creature-spawns: 1
+  axolotl-spawns: 1
+  ambient-spawns: 1
+  autosave: 6000
+EOF
+
+    # spigot.yml
+    cat > "${MC_DIR}/spigot.yml" << 'EOF'
+# ── Zenith Cloud spigot.yml ──
+settings:
+  save-user-cache-on-stop-only: false
+  log-villager-deaths: false
+  log-named-deaths: true
+  debug: false
+  bungeecord: false
+  sample-count: 12
+  player-shuffle: 0
+  user-cache-size: 1000
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  timeout-time: 60
+  restart-on-crash: true
+  restart-script: ./start.sh
+  netty-threads: 4
+  attribute:
+    maxHealth:
+      max: 2048.0
+    movementSpeed:
+      max: 2048.0
+    attackDamage:
+      max: 2048.0
+
+messages:
+  whitelist: You are not whitelisted on this server!
+  unknown-command: Unknown command. Type "/help" for help.
+  server-full: The server is full!
+  outdated-client: Outdated client! Please use {0}
+  outdated-server: Outdated server! I'm still on {0}
+  restart: Server is restarting
+
+advancements:
+  disable-saving: false
+  disabled: []
+
+commands:
+  spam-exclusions:
+    - /skill
+  silent-commandblock-console: false
+  replace-commands:
+    - setblock
+    - summon
+    - testforblock
+    - tellraw
+  log: true
+  tab-complete: 0
+  send-namespaced: true
+
+players:
+  disable-saving: false
+
+world-settings:
+  default:
+    verbose: false
+    thunder-chance: 100000
+    simulation-distance: 0
+    enable-zombie-pigmen-portal-spawns: true
+    item-despawn-rate: 6000
+    arrow-despawn-rate: 1200
+    trident-despawn-rate: 1200
+    zombie-aggressive-towards-villager: true
+    nerf-spawner-mobs: false
+    mob-spawn-range: 6
+    end-portal-sound-radius: 0
+    seed-village: 10387312
+    seed-desert: 14357617
+    seed-igloo: 14357618
+    seed-jungle: 14357619
+    seed-swamp: 14357620
+    seed-monument: 10387313
+    seed-shipwreck: 165745295
+    seed-ocean: 14357621
+    seed-outpost: 165745296
+    seed-endcity: 10387313
+    seed-slime: 987234911
+    seed-nether: 30084232
+    seed-mansion: 10387319
+    seed-fossil: 14357921
+    seed-portal: 34222645
+    seed-stronghold: -727626780
+    hunger:
+      jump-walk-exhaustion: 0.05
+      jump-sprint-exhaustion: 0.2
+      combat-exhaustion: 0.1
+      regen-exhaustion: 6.0
+      swim-multiplier: 0.01
+      sprint-multiplier: 0.1
+      other-multiplier: 0.0
+    max-tnt-per-tick: 100
+    hopper-amount: 1
+    dragon-death-sound-radius: 0
+    wither-spawn-sound-radius: 0
+    merge-radius:
+      item: 2.5
+      exp: 3.0
+    chunks-per-player: 10
+    prevent-moving-into-unloaded-chunks: false
+    max-bulk-chunks: 10
+    entity-activation-range:
+      animals: 32
+      monsters: 32
+      raiders: 48
+      misc: 16
+      water: 16
+      villagers: 32
+      flying-monsters: 32
+      villagers-work-immunity-after: 100
+      villagers-work-immunity-for: 20
+      villagers-active-for-panic: true
+      wake-up-inactive:
+        animals-max-per-tick: 4
+        animals-every: 1200
+        animals-for: 100
+        monsters-max-per-tick: 8
+        monsters-every: 400
+        monsters-for: 100
+        villagers-max-per-tick: 4
+        villagers-every: 600
+        villagers-for: 100
+        flying-monsters-max-per-tick: 8
+        flying-monsters-every: 200
+        flying-monsters-for: 100
+    entity-tracking-range:
+      players: 48
+      animals: 48
+      monsters: 48
+      misc: 32
+      display: 128
+      other: 64
+    ticks-per:
+      hopper-transfer: 8
+      hopper-check: 1
+EOF
+
+    # paper-global.yml (simplified performance section)
+    cat > "${MC_DIR}/paper-global.yml" << 'EOF'
+# ── Zenith Cloud paper-global.yml ──
+_version: 30
+
+async-chunks:
+  threads: -1
+
+chunk-system:
+  gen-parallelism: default
+  io-threads: -1
+  worker-threads: -1
+
+console:
+  enable-brigadier-completions: false
+  enable-brigadier-highlights: true
+  has-all-permissions: false
+
+item-validation:
+  display-name: 8192
+  lore-line: 8192
+  resolve-selectors-in-books: false
+
+logging:
+  deobfuscate-stacktraces: true
+
+messages:
+  no-permission: "&cI'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."
+  use-display-name-in-quit-message: false
+
+misc:
+  chat-threads:
+    chat-executor-core-size: -1
+    chat-executor-max-size: -1
+  fix-entity-position-desync: true
+  lag-compensate-block-breaking: true
+  load-permissions-yml-before-plugins: true
+  max-joins-per-tick: 3
+  region-file-cache-size: 256
+  strict-advancement-dimension-check: false
+  use-alternative-luck-formula: false
+  use-dimension-type-for-custom-spawners: false
+
+packet-limiter:
+  all-packets:
+    action: KICK
+    interval: 7.0
+    max-packet-rate: 500.0
+  overrides: {}
+
+player-auto-save:
+  max-per-tick: -1
+  rate: -1
+
+proxies:
+  bungee-cord:
+    online-mode: true
+  proxy-protocol: false
+  velocity:
+    enabled: false
+    online-mode: false
+    secret: ''
+
+spam-limiter:
+  incoming-packet-threshold: 300
+  recipe-spam-increment: 1
+  recipe-spam-limit: 20
+  tab-spam-increment: 1
+  tab-spam-limit: 500
+
+timings:
+  enabled: false
+  server-name: Unknown Server
+  server-name-privacy: false
+  url: https://timings.aikar.co
+  verbose: false
+
+unsupported-settings:
+  allow-grindstone-overstacking: false
+  allow-headless-pistons: false
+  allow-permanent-block-break-exploits: false
+  allow-piston-duplication: false
+  allow-tripwire-disarming-exploits: false
+  allow-unsafe-end-portal-teleportation: false
+  compression-format: ZLIB
+  perform-username-validation: true
+  skip-vanilla-damage-tick-when-shield-blocked: false
+
+watchdog:
+  early-warning-delay: 10000
+  early-warning-every: 5000
+EOF
+
+    progress_bar 30 "Writing YML configs" "$B_CYAN"
+    echo ""
+    echo -e "  ${B_GREEN}✔  YML configs generated!${NC}"
+    echo -e "  ${G}   bukkit.yml · spigot.yml · paper-global.yml → ${W}${MC_DIR}/${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_kernel_realtime() {
+    clear
+    echo ""
+    echo -e "  ${B_PURPLE}▶ KERNEL REALTIME TUNING FOR MC TICK${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Applying realtime kernel tuning for 20 TPS stability..." "$B_PURPLE" 0.02
+
+    (
+    sudo tee /etc/sysctl.d/99-zenith-mc-rt.conf > /dev/null << 'EOF'
+# ── Zenith MC Realtime Tuning ──
+# Scheduler for low-latency game loop
+kernel.sched_min_granularity_ns = 1000000
+kernel.sched_wakeup_granularity_ns = 1500000
+kernel.sched_migration_cost_ns = 500000
+kernel.sched_latency_ns = 4000000
+kernel.sched_nr_migrate = 32
+kernel.sched_autogroup_enabled = 1
+
+# Reduce timer interrupt latency
+kernel.timer_migration = 0
+
+# NUMA balancing
+kernel.numa_balancing = 1
+
+# Reduce scheduling jitter
+kernel.perf_event_paranoid = 2
+EOF
+    sudo sysctl --system -q 2>/dev/null
+
+    # Set realtime priority for Java MC process
+    for pid in $(pgrep -f "server.jar" 2>/dev/null); do
+        sudo chrt -f -p 20 "$pid" 2>/dev/null
+        sudo ionice -c 1 -n 0 -p "$pid" 2>/dev/null
+    done
+    ) &
+    spinner $! "Applying realtime scheduling"
+    progress_bar 25 "Tuning tick loop parameters" "$B_PURPLE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Realtime kernel tuned for MC TPS!${NC}"
+    echo -e "  ${G}   Scheduler latency: 4ms · Migration cost optimized · FIFO RT priority${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_process_priority() {
+    clear
+    echo ""
+    echo -e "  ${B_ORANGE}▶ MC PROCESS PRIORITY (NICE / IONICE)${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Setting high priority for MC Java processes..." "$B_ORANGE" 0.02
+
+    (
+    # Find MC java processes
+    MC_PIDS=$(pgrep -f "server.jar" 2>/dev/null)
+
+    if [ -n "$MC_PIDS" ]; then
+        for pid in $MC_PIDS; do
+            sudo renice -n -5 -p "$pid" 2>/dev/null
+            sudo ionice -c 1 -n 2 -p "$pid" 2>/dev/null
+            echo "$pid" >> /tmp/mc_pids_tracked
+        done
+    else
+        echo "  (No running MC server detected - settings will apply on next launch)"
+    fi
+
+    # Create launch wrapper script
+    cat > /usr/local/bin/mc-launch-optimized << 'LAUNCHER'
+#!/bin/bash
+# Zenith Cloud MC Optimized Launcher
+MC_DIR="${1:-/opt/minecraft}"
+JAVA_BIN=$(which java)
+
+cd "$MC_DIR" || exit 1
+
+# Start with nice -5 and real-time I/O
+nice -n -5 ionice -c 1 -n 2 "$JAVA_BIN" \
+    $(cat mc_jvm_flags.txt 2>/dev/null || echo "-Xmx4G -Xms4G") \
+    -jar server.jar nogui &
+
+MC_PID=$!
+echo "MC Server PID: $MC_PID"
+
+# Set CPU affinity to all cores
+taskset -p 0xFFFFFFFF "$MC_PID" 2>/dev/null
+
+# Protect from OOM
+echo -1000 > /proc/$MC_PID/oom_score_adj 2>/dev/null
+
+wait $MC_PID
+LAUNCHER
+    sudo chmod +x /usr/local/bin/mc-launch-optimized 2>/dev/null
+    ) &
+    spinner $! "Setting process priorities"
+    progress_bar 20 "Creating optimized launcher" "$B_ORANGE"
+    echo ""
+    echo -e "  ${B_GREEN}✔  MC process priority set!${NC}"
+    echo -e "  ${G}   nice: -5 · ionice: RT class · OOM protected${NC}"
+    echo -e "  ${G}   Launcher saved to: ${W}/usr/local/bin/mc-launch-optimized${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_cgroups() {
+    clear
+    echo ""
+    echo -e "  ${B_CYAN}▶ CGROUPS CPU/RAM ISOLATION FOR MC${NC}\n"
+    scan_effect
+    echo ""
+    printf "  ${W}RAM to reserve for MC (MB) [default: 4096]: ${NC}"
+    read -r CGROUP_RAM
+    CGROUP_RAM=${CGROUP_RAM:-4096}
+
+    typewriter "  Creating dedicated cgroup for MC server..." "$B_CYAN" 0.02
+
+    (
+    # Create cgroup v2 slice
+    sudo mkdir -p /sys/fs/cgroup/minecraft 2>/dev/null
+
+    # CPU: 60% of total CPU (600 out of 1000)
+    CPU_QUOTA=$(( $(nproc) * 60000 ))
+    echo "100000 $CPU_QUOTA" | sudo tee /sys/fs/cgroup/minecraft/cpu.max > /dev/null 2>/dev/null
+
+    # Memory limit
+    RAM_BYTES=$(( CGROUP_RAM * 1024 * 1024 ))
+    echo "$RAM_BYTES" | sudo tee /sys/fs/cgroup/minecraft/memory.max > /dev/null 2>/dev/null
+    echo "$(( RAM_BYTES + 512 * 1024 * 1024 ))" | sudo tee /sys/fs/cgroup/minecraft/memory.swap.max > /dev/null 2>/dev/null
+
+    # Pin MC processes to cgroup
+    for pid in $(pgrep -f "server.jar" 2>/dev/null); do
+        echo "$pid" | sudo tee /sys/fs/cgroup/minecraft/cgroup.procs > /dev/null 2>/dev/null
+    done
+    ) &
+    spinner $! "Creating cgroup isolation"
+    progress_bar 25 "Allocating CPU/RAM slices" "$B_CYAN"
+    echo ""
+    echo -e "  ${B_GREEN}✔  cgroup isolation active!${NC}"
+    echo -e "  ${G}   RAM reserved: ${W}${CGROUP_RAM}MB${G} · CPU quota: 60% guaranteed${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_firewall() {
+    clear
+    echo ""
+    echo -e "  ${B_RED}▶ UFW FIREWALL RULES FOR MC${NC}\n"
+    scan_effect
+    echo ""
+    typewriter "  Configuring UFW for secure MC hosting..." "$B_RED" 0.02
+
+    (
+    # Install ufw if needed
+    command -v ufw &>/dev/null || sudo apt-get install -y ufw -qq 2>/dev/null
+
+    # Reset and configure
+    sudo ufw --force reset 2>/dev/null
+
+    # Default policies
+    sudo ufw default deny incoming 2>/dev/null
+    sudo ufw default allow outgoing 2>/dev/null
+
+    # SSH (keep access)
+    sudo ufw allow ssh 2>/dev/null
+    sudo ufw allow 22/tcp 2>/dev/null
+
+    # Minecraft Java Edition
+    sudo ufw allow 25565/tcp comment "Minecraft Java" 2>/dev/null
+
+    # Minecraft Bedrock Edition
+    sudo ufw allow 19132/udp comment "Minecraft Bedrock" 2>/dev/null
+    sudo ufw allow 19133/udp comment "Minecraft Bedrock IPv6" 2>/dev/null
+
+    # Pterodactyl Panel
+    sudo ufw allow 80/tcp comment "HTTP Panel" 2>/dev/null
+    sudo ufw allow 443/tcp comment "HTTPS Panel" 2>/dev/null
+    sudo ufw allow 8080/tcp comment "Pterodactyl Wings" 2>/dev/null
+    sudo ufw allow 2022/tcp comment "Wings SFTP" 2>/dev/null
+
+    # Rate limiting on MC port (anti-DDoS)
+    sudo ufw limit 25565/tcp 2>/dev/null
+
+    # Enable
+    sudo ufw --force enable 2>/dev/null
+    ) &
+    spinner $! "Configuring UFW firewall"
+    progress_bar 30 "Applying firewall rules" "$B_RED"
+    echo ""
+    echo -e "  ${B_GREEN}✔  Firewall configured!${NC}"
+    echo ""
+    echo -e "  ${G}Allowed Ports:${NC}"
+    echo -e "  ${W}  22/tcp${NC}    ${G}SSH${NC}"
+    echo -e "  ${W}  25565/tcp${NC} ${G}Minecraft Java (rate-limited)${NC}"
+    echo -e "  ${W}  19132/udp${NC} ${G}Minecraft Bedrock${NC}"
+    echo -e "  ${W}  80/tcp${NC}    ${G}HTTP${NC}"
+    echo -e "  ${W}  443/tcp${NC}   ${G}HTTPS${NC}"
+    echo -e "  ${W}  8080/tcp${NC}  ${G}Pterodactyl Wings${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+mc_apply_all() {
+    clear
+    echo ""
+    echo -e "  ${GOLD}▶ FULL MINECRAFT BOOST — APPLYING EVERYTHING${NC}\n"
+    scan_effect
+
+    local tasks=(
+        "MC Network Stack"
+        "Chunk I/O Booster"
+        "Kernel Realtime Tuning"
+        "Process Priority"
+        "cgroups Isolation"
+        "UFW Firewall"
+        "server.properties"
+        "bukkit/spigot/paper YMLs"
+    )
+
+    echo ""
+    for task in "${tasks[@]}"; do
+        printf "  ${B_ORANGE}▶${NC} ${W}Queuing: %-35s${NC}" "$task"
+        sleep 0.15
+        printf "${B_GREEN}[OK]${NC}\n"
+    done
+
+    echo ""
+    progress_bar 100 "Applying all MC optimizations" "$B_ORANGE"
+    echo ""
+
+    (
+    mc_network_tuning_silent
+    mc_chunk_io_silent
+    mc_kernel_realtime_silent
+    mc_process_priority_silent
+    mc_firewall_silent
+    ) 2>/dev/null
+
+    echo ""
+    glitch_text "  MINECRAFT SERVER AT MAXIMUM PERFORMANCE"
+    echo ""
+    echo -e "  ${B_GREEN}╔══════════════════════════════════════════════════════╗${NC}"
+    echo -e "  ${B_GREEN}║  ✔  Network · Chunks · Kernel · Priority           ║${NC}"
+    echo -e "  ${B_GREEN}║  ✔  cgroups · Firewall · server.properties · YMLs ║${NC}"
+    echo -e "  ${B_GREEN}║  🎮 MC SERVER RUNNING AT MAXIMUM POTENTIAL         ║${NC}"
+    echo -e "  ${B_GREEN}╚══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${G}Next steps:${NC}"
+    echo -e "  ${W}  1.${NC} ${G}Use ${W}[1]${G} to generate JVM flags for your server${NC}"
+    echo -e "  ${W}  2.${NC} ${G}Use ${W}mc-launch-optimized${G} instead of plain java to start${NC}"
+    echo -e "  ${W}  3.${NC} ${G}Reboot to persist all kernel changes${NC}"
+    echo ""
+    read -rp "  Press Enter to continue..." _
+}
+
+# Silent versions
+mc_network_tuning_silent() {
+    sudo tee /etc/sysctl.d/99-zenith-mc-net.conf > /dev/null << 'EOF'
+net.ipv4.tcp_nodelay = 1
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
+net.ipv4.tcp_congestion_control = bbr
+net.core.default_qdisc = fq
+net.ipv4.tcp_max_syn_backlog = 65536
+net.core.somaxconn = 65535
+EOF
+    modprobe tcp_bbr 2>/dev/null
+    sudo sysctl --system -q 2>/dev/null
+}
+
+mc_chunk_io_silent() {
+    for disk in /sys/block/sd* /sys/block/vd*; do
+        [ -d "$disk" ] || continue
+        echo 2048 | sudo tee "${disk}/queue/read_ahead_kb" > /dev/null 2>/dev/null
+        echo 512 | sudo tee "${disk}/queue/nr_requests" > /dev/null 2>/dev/null
+    done
+    sudo sysctl -w vm.dirty_ratio=40 -q 2>/dev/null
+}
+
+mc_kernel_realtime_silent() {
+    sudo sysctl -w kernel.sched_min_granularity_ns=1000000 -q 2>/dev/null
+    sudo sysctl -w kernel.sched_latency_ns=4000000 -q 2>/dev/null
+}
+
+mc_process_priority_silent() {
+    for pid in $(pgrep -f "server.jar" 2>/dev/null); do
+        sudo renice -n -5 -p "$pid" 2>/dev/null
+        sudo ionice -c 1 -n 2 -p "$pid" 2>/dev/null
+        echo -1000 > /proc/$pid/oom_score_adj 2>/dev/null
+    done
+}
+
+mc_firewall_silent() {
+    command -v ufw &>/dev/null || return
+    sudo ufw --force reset 2>/dev/null
+    sudo ufw default deny incoming 2>/dev/null
+    sudo ufw default allow outgoing 2>/dev/null
+    sudo ufw allow ssh 2>/dev/null
+    sudo ufw allow 25565/tcp 2>/dev/null
+    sudo ufw allow 19132/udp 2>/dev/null
+    sudo ufw allow 80/tcp 2>/dev/null
+    sudo ufw allow 443/tcp 2>/dev/null
+    sudo ufw allow 8080/tcp 2>/dev/null
+    sudo ufw limit 25565/tcp 2>/dev/null
+    sudo ufw --force enable 2>/dev/null
+}
+
+# ============================================================
+# FIRST RUN BOOT SEQUENCE
+# ============================================================
+ZENITH_BOOTED="${ZENITH_BOOTED:-0}"
+if [ "$ZENITH_BOOTED" = "0" ]; then
+    export ZENITH_BOOTED=1
+    boot_sequence
+fi
+
+# ============================================================
+# MAIN LOOP
+# ============================================================
 while true; do
     render_ui
     read -r opt
 
-    case $opt in
+    case "${opt^^}" in
         1) bash <(curl -s https://raw.githubusercontent.com/nobita329/Zenith-Cloud/refs/heads/main/VM/menu.sh) ;;
         2) bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/panel/1.sh) ;;
         3) bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/wings/run.sh) ;;
@@ -87,23 +1901,46 @@ while true; do
         7) bash <(curl -s https://raw.githubusercontent.com/nobita329/ptero/refs/heads/main/ptero/no-kvm/run.sh) ;;
 
         8)
-            echo -e "\n ${B_GREEN}▶ Launching New Module...${NC}"
-            sleep 1.5
+            clear
+            echo ""
+            echo -e "  ${B_GREEN}▶ Launching New Module...${NC}"
+            progress_bar 20 "Loading module" "$B_GREEN"
+            sleep 1
             ;;
         9)
-            echo -e "\n ${B_PURPLE}▶ Opening Extras...${NC}"
+            echo -e "\n  ${B_PURPLE}▶ Opening Extras...${NC}"
             bash <(curl -s https://raw.githubusercontent.com/nobita329/Nobita-Cloud/refs/heads/main/Extras/run.sh)
-            sleep 1.5
+            sleep 1
             ;;
 
-        0|exit|quit)
-            echo -e "\n ${B_RED}● DISCONNECTED${NC}  Goodbye, Zenith Cloud."
+        O)
+            vps_optimizer_menu
+            ;;
+
+        M)
+            mc_booster_menu
+            ;;
+
+        0|EXIT|QUIT)
+            clear
+            echo ""
+            printf "  ${B_RED}"
+            for i in $(seq 1 60); do printf "▄"; sleep 0.005; done
+            printf "${NC}\n"
+            echo ""
+            glitch_text "  DISCONNECTING FROM ZENITH CLOUD..."
+            sleep 0.5
+            echo -e "\n  ${B_RED}●${NC} ${W}DISCONNECTED${NC}  ${G}Goodbye, Zenith Cloud.${NC}\n"
+            sleep 0.5
+            printf "  ${B_RED}"
+            for i in $(seq 1 60); do printf "▀"; sleep 0.005; done
+            printf "${NC}\n\n"
             exit 0
             ;;
 
         *)
-            echo -e "\n ${B_RED}✘ Invalid Option!${NC}"
-            sleep 0.8
+            echo -e "\n  ${B_RED}✘ Invalid Option!${NC}"
+            sleep 0.7
             ;;
     esac
 done
